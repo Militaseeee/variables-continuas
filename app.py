@@ -348,30 +348,37 @@ button.stBaseButton-primary:hover {
 #                   el texto del paso al lado.
 # ================================================================
 
-def mostrar_panel(res, interp, pasos, es_valor=False):
-    """Muestra la tarjeta de resultado, la interpretación y los pasos."""
-    if es_valor:
-        st.markdown(f"""
-        <div class="res-card">
-            <div class="res-label">VALOR ENCONTRADO</div>
-            <div class="res-num">{res:.4f}</div>
-        </div>""", unsafe_allow_html=True)
-    else:
-        st.markdown(f"""
-        <div class="res-card">
-            <div class="res-label">PROBABILIDAD CALCULADA</div>
-            <div class="res-num">{res:.4f}</div>
-            <div class="res-pct">{res*100:.2f} %</div>
-        </div>""", unsafe_allow_html=True)
+def mostrar_panel(res, interp, pasos, es_valor=False, parte="todo"):
+    """Muestra la tarjeta de resultado, la interpretación y los pasos.
+    parte='resultado' → solo número + interpretación
+    parte='pasos'     → solo explicación paso a paso
+    parte='todo'      → ambos (comportamiento original)
+    """
+    if parte in ("todo", "resultado"):
+        if es_valor:
+            st.markdown(f"""
+            <div class="res-card">
+                <div class="res-label">VALOR ENCONTRADO</div>
+                <div class="res-num">{res:.4f}</div>
+            </div>""", unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+            <div class="res-card">
+                <div class="res-label">PROBABILIDAD CALCULADA</div>
+                <div class="res-num">{res:.4f}</div>
+                <div class="res-pct">{res*100:.2f} %</div>
+            </div>""", unsafe_allow_html=True)
+        if parte == "todo":
+            st.markdown(f'<div class="interp">💬 &nbsp;{interp}</div>', unsafe_allow_html=True)
 
-    st.markdown(f'<div class="interp">💬 &nbsp;{interp}</div>', unsafe_allow_html=True)
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown(
-        '<span style="color:#60A5FA;font-weight:700;font-size:.9rem;">📐 Explicación paso a paso</span>',
-        unsafe_allow_html=True,
-    )
-    for paso in pasos:
-        st.markdown(f'<div class="paso-exp">{paso}</div>', unsafe_allow_html=True)
+    if parte in ("todo", "pasos"):
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown(
+            '<span style="color:#60A5FA;font-weight:700;font-size:.9rem;">📐 Explicación paso a paso</span>',
+            unsafe_allow_html=True,
+        )
+        for paso in pasos:
+            st.markdown(f'<div class="paso-exp">{paso}</div>', unsafe_allow_html=True)
 
 
 def paso_header(n, texto):
@@ -553,7 +560,7 @@ with tab_n:
                                                  ts_n="izquierda", la_n=r, lb_n=None))
                     st.rerun()
 
-    # -- Gráfica y resultados ------------------------------------
+    # -- Gráfica (columna derecha, siempre visible) ---------------
     with R:
         st.markdown(
             '<div class="ficha"><span class="ficha-lbl">¿Cuándo se usa?</span>'
@@ -567,9 +574,19 @@ with tab_n:
                               st.session_state.get("lb_n"))
         st.pyplot(fig_n, use_container_width=True)
         plt.close(fig_n)
-        if "r_n" in st.session_state:
-            mostrar_panel(st.session_state["r_n"], st.session_state["it_n"],
-                          st.session_state["ps_n"], st.session_state.get("ev_n", False))
+
+    # -- Card resultado (aparece solo tras calcular) --------------
+    if "r_n" in st.session_state:
+        with st.container(border=True):
+            rL, rR = st.columns([1, 1.4], gap="large")
+            with rL:
+                mostrar_panel(st.session_state["r_n"], st.session_state["it_n"],
+                              st.session_state["ps_n"], st.session_state.get("ev_n", False),
+                              parte="resultado")
+            with rR:
+                mostrar_panel(st.session_state["r_n"], st.session_state["it_n"],
+                              st.session_state["ps_n"], st.session_state.get("ev_n", False),
+                              parte="pasos")
 
 
 # ── PESTAÑA: t DE STUDENT ────────────────────────────────────────
@@ -649,9 +666,18 @@ with tab_t:
                               st.session_state.get("lb_t"))
         st.pyplot(fig_t, use_container_width=True)
         plt.close(fig_t)
-        if "r_t" in st.session_state:
-            mostrar_panel(st.session_state["r_t"], st.session_state["it_t"],
-                          st.session_state["ps_t"], st.session_state.get("ev_t", False))
+
+    if "r_t" in st.session_state:
+        with st.container(border=True):
+            rL, rR = st.columns([1, 1.4], gap="large")
+            with rL:
+                mostrar_panel(st.session_state["r_t"], st.session_state["it_t"],
+                              st.session_state["ps_t"], st.session_state.get("ev_t", False),
+                              parte="resultado")
+            with rR:
+                mostrar_panel(st.session_state["r_t"], st.session_state["it_t"],
+                              st.session_state["ps_t"], st.session_state.get("ev_t", False),
+                              parte="pasos")
 
 
 # ── PESTAÑA: CHI-CUADRADO ────────────────────────────────────────
@@ -716,9 +742,18 @@ with tab_c:
                               st.session_state.get("la_c"))
         st.pyplot(fig_c, use_container_width=True)
         plt.close(fig_c)
-        if "r_c" in st.session_state:
-            mostrar_panel(st.session_state["r_c"], st.session_state["it_c"],
-                          st.session_state["ps_c"], st.session_state.get("ev_c", False))
+
+    if "r_c" in st.session_state:
+        with st.container(border=True):
+            rL, rR = st.columns([1, 1.4], gap="large")
+            with rL:
+                mostrar_panel(st.session_state["r_c"], st.session_state["it_c"],
+                              st.session_state["ps_c"], st.session_state.get("ev_c", False),
+                              parte="resultado")
+            with rR:
+                mostrar_panel(st.session_state["r_c"], st.session_state["it_c"],
+                              st.session_state["ps_c"], st.session_state.get("ev_c", False),
+                              parte="pasos")
 
 
 # ── PESTAÑA: F DE FISHER ─────────────────────────────────────────
@@ -778,9 +813,18 @@ with tab_f:
                               st.session_state.get("la_f"))
         st.pyplot(fig_f, use_container_width=True)
         plt.close(fig_f)
-        if "r_f" in st.session_state:
-            mostrar_panel(st.session_state["r_f"], st.session_state["it_f"],
-                          st.session_state["ps_f"], st.session_state.get("ev_f", False))
+
+    if "r_f" in st.session_state:
+        with st.container(border=True):
+            rL, rR = st.columns([1, 1.4], gap="large")
+            with rL:
+                mostrar_panel(st.session_state["r_f"], st.session_state["it_f"],
+                              st.session_state["ps_f"], st.session_state.get("ev_f", False),
+                              parte="resultado")
+            with rR:
+                mostrar_panel(st.session_state["r_f"], st.session_state["it_f"],
+                              st.session_state["ps_f"], st.session_state.get("ev_f", False),
+                              parte="pasos")
 
 
 # ================================================================
