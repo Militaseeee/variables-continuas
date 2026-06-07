@@ -1,12 +1,37 @@
-# ============================================================
-# app.py — Visualizador de Distribuciones Continuas
-# Autora: Alejandra Acosta | Bioestadística | Tema 4
-# ============================================================
+# ================================================================
+# app.py — FRONTEND: Interfaz visual de la aplicación
+#
+# Este archivo construye todo lo que el usuario ve y toca:
+#   · La configuración de la página
+#   · Los estilos (CSS) que dan el look oscuro
+#   · Los componentes visuales: header, tarjetas, pestañas, botones
+#
+# La matemática vive en calculos.py.
+# Si quieres cambiar colores, textos o layout → edita este archivo.
+# Si quieres cambiar cómo se calcula algo    → edita calculos.py.
+# ================================================================
 
 import streamlit as st
-import numpy as np
 import matplotlib.pyplot as plt
-from scipy import stats
+
+# Importa todas las funciones matemáticas y de gráfico desde el backend
+from calculos import (
+    calcular_normal,
+    calcular_t,
+    calcular_chi2,
+    calcular_f,
+    crear_grafico,
+)
+
+
+# ================================================================
+# BLOQUE 1 — CONFIGURACIÓN DE LA PÁGINA
+#
+# Lo primero que ejecuta Streamlit. Define el título de la pestaña
+# del navegador, el ícono, y que el layout sea "wide" (ancho
+# completo) en lugar del modo centrado por defecto.
+# La barra lateral empieza colapsada para que no moleste.
+# ================================================================
 
 st.set_page_config(
     page_title="Distribuciones Continuas | Bioestadística",
@@ -15,40 +40,47 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# ============================================================
-# PALETA DARK
-#   fondo página    : #020817  (midnight navy)
-#   fondo tarjeta   : #0D1628  (dark navy)
-#   tarjeta elevada : #111E35  (navy medio)
-#   borde           : #1E3055  (azul oscuro)
-#   azul brillante  : #60A5FA  (accent primario)
-#   azul glow       : #3B82F6
-#   verde éxito     : #34D399
-#   ámbar           : #FBBF24
-#   texto claro     : #E2E8F0
-#   texto suave     : #94A3B8
-# ============================================================
+
+# ================================================================
+# BLOQUE 2 — ESTILOS CSS (apariencia visual)
+#
+# st.markdown con unsafe_allow_html=True permite inyectar CSS puro.
+# Aquí se define la paleta de colores del tema oscuro:
+#
+#   #020817  → fondo de la página (azul medianoche)
+#   #0D1628  → fondo de tarjetas y containers
+#   #1E3055  → color de los bordes
+#   #60A5FA  → azul brillante (acento principal)
+#   #E2E8F0  → texto claro (casi blanco)
+#   #94A3B8  → texto suave (gris azulado)
+#
+# Cada bloque de CSS lleva un comentario que dice qué elemento afecta.
+# ================================================================
+
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-/* ══ FONDO GLOBAL + FUENTE ══════════════════════════════ */
+/* ── Fuente global ─────────────────────────────────────── */
 *, *::before, *::after,
 .stApp, [data-testid="stAppViewContainer"],
 [data-testid="stMain"], [data-testid="stMarkdownContainer"],
 button, input, label, p, span, div {
     font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif !important;
 }
+
+/* ── Fondo de la página ────────────────────────────────── */
 .stApp,
 [data-testid="stAppViewContainer"],
 [data-testid="stMain"] { background-color: #020817 !important; }
 
+/* ── Ocultar elementos de Streamlit que no necesitamos ─── */
 [data-testid="stHeader"]  { background: transparent !important; }
 [data-testid="stToolbar"] { display: none !important; }
 #MainMenu, footer         { visibility: hidden !important; }
 .block-container          { padding: 0.5rem 2.4rem 2rem !important; }
 
-/* ══ INPUTS ═════════════════════════════════════════════ */
+/* ── Campos de número (inputs) ─────────────────────────── */
 input[type="number"],
 [data-testid="stNumberInput"] input {
     background-color: #0D1628 !important;
@@ -61,21 +93,21 @@ input[type="number"]:focus {
     box-shadow: 0 0 0 3px rgba(96,165,250,0.18) !important;
 }
 
-/* ══ LABELS / CAPTIONS ══════════════════════════════════ */
+/* ── Etiquetas y subtextos ─────────────────────────────── */
 label, [data-testid="stWidgetLabel"] p,
 [data-testid="stCaptionContainer"] p {
     color: #94A3B8 !important;
 }
 
-/* ══ RADIO BUTTONS ══════════════════════════════════════ */
+/* ── Radio buttons ─────────────────────────────────────── */
 [data-testid="stRadio"] label { color: #CBD5E1 !important; font-size: 0.93rem; }
 [data-testid="stRadio"] [data-testid="stMarkdownContainer"] p { color: #CBD5E1 !important; }
 
-/* ══ SELECT SLIDER ══════════════════════════════════════ */
+/* ── Slider ────────────────────────────────────────────── */
 [data-testid="stSlider"] > div > div { background: #1E3055 !important; }
 [data-testid="stSlider"] [role="slider"] { background: #60A5FA !important; }
 
-/* ══ TABS ════════════════════════════════════════════════ */
+/* ── Pestañas (tabs) ───────────────────────────────────── */
 [data-testid="stTabs"] > div:first-child {
     background: #0D1628;
     border-radius: 12px 12px 0 0;
@@ -104,14 +136,14 @@ button[data-baseweb="tab"][aria-selected="true"] {
     padding: 24px 28px !important;
 }
 
-/* ══ CONTAINERS CON BORDE ═══════════════════════════════ */
+/* ── Containers con borde ──────────────────────────────── */
 [data-testid="stVerticalBlockBorderWrapper"] {
     background: #0D1628 !important;
     border: 1px solid #1E3055 !important;
     border-radius: 12px !important;
 }
 
-/* ══ EXPANDERS ══════════════════════════════════════════ */
+/* ── Expanders ─────────────────────────────────────────── */
 [data-testid="stExpander"] {
     background: #0D1628 !important;
     border: 1px solid #1E3055 !important;
@@ -120,20 +152,23 @@ button[data-baseweb="tab"][aria-selected="true"] {
 [data-testid="stExpander"] summary p { color: #94A3B8 !important; }
 [data-testid="stExpander"] summary svg { fill: #64748B !important; }
 
-/* ══ ALERTS ════════════════════════════════════════════ */
+/* ── Alertas (st.success, st.warning, st.info) ─────────── */
 [data-testid="stAlert"] {
     border-radius: 10px !important;
     background: #0D1628 !important;
 }
 
-/* ══ DIVIDER ═══════════════════════════════════════════ */
+/* ── Línea divisoria ───────────────────────────────────── */
 hr { border-color: #1E3055 !important; }
 
-/* ══════════════════════════════════════════════════════
-   COMPONENTES PERSONALIZADOS HTML
-══════════════════════════════════════════════════════ */
 
-/* ─ Header ─ */
+/* ================================================================
+   COMPONENTES HTML PERSONALIZADOS
+   Los bloques siguientes definen clases CSS que se usan con
+   st.markdown(..., unsafe_allow_html=True) en el código de abajo.
+   ================================================================ */
+
+/* ── .hdr → Bloque de encabezado principal ─────────────── */
 .hdr {
     background: linear-gradient(135deg, #020817 0%, #0B1932 45%, #152545 100%);
     border: 1px solid #1E3055;
@@ -160,11 +195,11 @@ hr { border-color: #1E3055 !important; }
     font-weight: 800;
     letter-spacing: 0.4px;
 }
-.hdr .sub  { color: #94A3B8; font-size: .97rem; margin: 0; }
-.hdr .aut  { color: #475569; font-size: .83rem; margin: 5px 0 0;
-             border-top: 1px solid #1E3055; padding-top: 6px; }
+.hdr .sub { color: #94A3B8; font-size: .97rem; margin: 0; }
+.hdr .aut { color: #475569; font-size: .83rem; margin: 5px 0 0;
+            border-top: 1px solid #1E3055; padding-top: 6px; }
 
-/* ─ Ficha de distribución (tabs) ─ */
+/* ── .ficha → Tarjeta informativa dentro de cada pestaña ── */
 .ficha {
     background: #0D1628;
     border: 1px solid #1E3055;
@@ -178,7 +213,7 @@ hr { border-color: #1E3055 !important; }
 }
 .ficha strong { color: #CBD5E1; }
 
-/* ─ Tarjetas de concepto (sección superior, misma altura) ─ */
+/* ── .ck-* → Tarjetas de concepto (sección "¿Qué es?") ─── */
 .ck-azul, .ck-morado, .ck-verde {
     background: #0D1628;
     border: 1px solid #1E3055;
@@ -194,6 +229,8 @@ hr { border-color: #1E3055 !important; }
 .ck-morado { border-left: 4px solid #A78BFA; }
 .ck-verde  { border-left: 4px solid #34D399; }
 .ck-azul strong, .ck-morado strong, .ck-verde strong { color: #CBD5E1; }
+
+/* ── .ficha-lbl → Etiqueta pequeña en mayúsculas ──────── */
 .ficha-lbl {
     display: block;
     color: #60A5FA;
@@ -204,10 +241,8 @@ hr { border-color: #1E3055 !important; }
     margin-bottom: 6px;
 }
 
-/* ─ Columnas de concepto — misma altura ─ */
-[data-testid="stHorizontalBlock"] {
-    align-items: stretch !important;
-}
+/* ── Iguala la altura de las columnas de concepto ─────── */
+[data-testid="stHorizontalBlock"] { align-items: stretch !important; }
 [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
     display: flex !important;
     flex-direction: column !important;
@@ -226,7 +261,7 @@ hr { border-color: #1E3055 !important; }
     flex: 1 !important;
 }
 
-/* ─ Burbuja de paso ─ */
+/* ── .burbuja + .paso-lbl → Numerito circular de paso ─── */
 .paso-wrap { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
 .burbuja {
     background: linear-gradient(135deg, #1D4ED8, #2563EB);
@@ -240,7 +275,7 @@ hr { border-color: #1E3055 !important; }
 }
 .paso-lbl { font-weight: 700; font-size: .98rem; color: #CBD5E1; }
 
-/* ─ Tarjeta resultado ─ */
+/* ── .res-card → Tarjeta verde con el resultado numérico ─ */
 .res-card {
     background: linear-gradient(145deg, #051E17, #092E22);
     border: 1px solid #14532D;
@@ -256,7 +291,7 @@ hr { border-color: #1E3055 !important; }
              line-height:1; letter-spacing:-1px; }
 .res-pct   { font-size:1.3rem; font-weight:700; color:#6EE7B7; margin-top:4px; }
 
-/* ─ Interpretación ─ */
+/* ── .interp → Caja azul con la interpretación en texto ─ */
 .interp {
     background: #0B1932;
     border-left: 5px solid #3B82F6;
@@ -268,7 +303,7 @@ hr { border-color: #1E3055 !important; }
     margin-bottom: 14px;
 }
 
-/* ─ Paso explicado ─ */
+/* ── .paso-exp → Caja gris por cada paso matemático ───── */
 .paso-exp {
     background: #0D1628;
     border: 1px solid #1E3055;
@@ -281,16 +316,19 @@ hr { border-color: #1E3055 !important; }
 }
 .paso-exp strong, .paso-exp b { color: #CBD5E1; }
 
-/* ─ Botón primario ─ */
-div.stButton > button[kind="primary"] {
+/* ── Botón principal ───────────────────────────────────── */
+div.stButton > button[kind="primary"],
+button.stBaseButton-primary {
     background: linear-gradient(135deg, #1D4ED8, #2563EB) !important;
     color: white !important; border: none !important;
-    border-radius: 10px !important; padding: 11px 0 !important;
+    border-radius: 10px !important; padding: 11px 28px !important;
     font-size: 1rem !important; font-weight: 700 !important; width: 100%;
     box-shadow: 0 4px 18px rgba(37,99,235,0.45) !important;
     transition: all .2s !important;
+    letter-spacing: 0.3px !important;
 }
-div.stButton > button[kind="primary"]:hover {
+div.stButton > button[kind="primary"]:hover,
+button.stBaseButton-primary:hover {
     transform: translateY(-1px) !important;
     box-shadow: 0 6px 22px rgba(37,99,235,0.6) !important;
 }
@@ -298,258 +336,20 @@ div.stButton > button[kind="primary"]:hover {
 """, unsafe_allow_html=True)
 
 
-# ============================================================
-# FUNCIONES DE CÁLCULO
-# ============================================================
-
-def calcular_normal(media, sigma, tipo, val_a, val_b=None):
-    pasos = []
-    pasos.append(
-        f"**1 — Distribución**\n\n"
-        f"X ~ N(μ={media}, σ={sigma})  —  campana simétrica centrada en {media}."
-    )
-    if tipo == 'izquierda':
-        z = (val_a - media) / sigma
-        prob = stats.norm.cdf(val_a, loc=media, scale=sigma)
-        pasos.append(f"**2 — Puntaje Z**\n\nZ = ({val_a} − {media}) / {sigma} = **{z:.4f}**\n\n"
-                     f"Indica cuántas σ está el valor de la media.")
-        pasos.append(f"**3 — Probabilidad acumulada**\n\n"
-                     f"P(X ≤ {val_a}) = P(Z ≤ {z:.4f}) = **{prob:.4f}**")
-        interp = (f"Hay un **{prob*100:.2f}%** de probabilidad de que la variable sea "
-                  f"**menor o igual a {val_a}**.")
-        return prob, pasos, interp, False
-
-    elif tipo == 'derecha':
-        z = (val_a - media) / sigma
-        prob_i = stats.norm.cdf(val_a, loc=media, scale=sigma)
-        prob = 1 - prob_i
-        pasos.append(f"**2 — Puntaje Z**\n\nZ = ({val_a} − {media}) / {sigma} = **{z:.4f}**")
-        pasos.append(f"**3 — Cola derecha**\n\nP(X ≥ {val_a}) = 1 − {prob_i:.4f} = **{prob:.4f}**")
-        interp = (f"Hay un **{prob*100:.2f}%** de probabilidad de que la variable sea "
-                  f"**mayor o igual a {val_a}**.")
-        return prob, pasos, interp, False
-
-    elif tipo == 'entre':
-        za = (val_a - media) / sigma
-        zb = (val_b - media) / sigma
-        pa = stats.norm.cdf(val_a, loc=media, scale=sigma)
-        pb = stats.norm.cdf(val_b, loc=media, scale=sigma)
-        prob = pb - pa
-        pasos.append(f"**2 — Z de ambos límites**\n\n"
-                     f"Z_a = ({val_a} − {media}) / {sigma} = **{za:.4f}**\n\n"
-                     f"Z_b = ({val_b} − {media}) / {sigma} = **{zb:.4f}**")
-        pasos.append(f"**3 — Restar áreas**\n\n"
-                     f"P({val_a} ≤ X ≤ {val_b}) = {pb:.4f} − {pa:.4f} = **{prob:.4f}**")
-        interp = (f"Hay un **{prob*100:.2f}%** de probabilidad de que la variable esté "
-                  f"**entre {val_a} y {val_b}**.")
-        return prob, pasos, interp, False
-
-    elif tipo == 'percentil':
-        x_val = stats.norm.ppf(val_a, loc=media, scale=sigma)
-        z = stats.norm.ppf(val_a)
-        pasos.append(f"**2 — Z del percentil {val_a*100:.1f}**\n\n"
-                     f"z tal que P(Z ≤ z) = {val_a}  →  z = **{z:.4f}**")
-        pasos.append(f"**3 — Convertir Z → X**\n\n"
-                     f"X = {media} + ({z:.4f}) × {sigma} = **{x_val:.4f}**")
-        interp = (f"El percentil {val_a*100:.1f} es **X = {x_val:.4f}**. "
-                  f"El {val_a*100:.1f}% de los valores está por debajo de este punto.")
-        return x_val, pasos, interp, True
-
-
-def calcular_t(gl, tipo, val_a, val_b=None):
-    pasos = []
-    dist = stats.t(df=gl)
-    nota = ("≈ Normal" if gl >= 30 else "colas más anchas que Normal" if gl >= 10
-            else "colas bastante más anchas")
-    pasos.append(f"**1 — Distribución**\n\nT ~ t({gl})  —  {nota}.")
-
-    if tipo == 'izquierda':
-        prob = dist.cdf(val_a)
-        pasos.append(f"**2 — Probabilidad acumulada**\n\nP(T ≤ {val_a}) = **{prob:.4f}**")
-        interp = f"Con {gl} gl, P(T ≤ {val_a}) = **{prob:.4f}** ({prob*100:.2f}%)."
-        return prob, pasos, interp, False
-
-    elif tipo == 'derecha':
-        pi = dist.cdf(val_a); prob = 1 - pi
-        pasos.append(f"**2 — Cola derecha**\n\nP(T ≥ {val_a}) = 1 − {pi:.4f} = **{prob:.4f}**")
-        interp = f"Con {gl} gl, P(T ≥ {val_a}) = **{prob:.4f}** ({prob*100:.2f}%)."
-        return prob, pasos, interp, False
-
-    elif tipo == 'entre':
-        pa = dist.cdf(val_a); pb = dist.cdf(val_b); prob = pb - pa
-        pasos.append(f"**2 — Área entre límites**\n\n"
-                     f"P(T ≤ {val_a}) = {pa:.4f}  |  P(T ≤ {val_b}) = {pb:.4f}\n\n"
-                     f"P({val_a} ≤ T ≤ {val_b}) = {pb:.4f} − {pa:.4f} = **{prob:.4f}**")
-        interp = f"Con {gl} gl, P({val_a} ≤ T ≤ {val_b}) = **{prob:.4f}** ({prob*100:.2f}%)."
-        return prob, pasos, interp, False
-
-    elif tipo == 'valor_critico':
-        vc = dist.ppf(1 - val_a / 2)
-        pasos.append(f"**2 — Valor crítico (α = {val_a})**\n\n"
-                     f"Cada cola = α/2 = {val_a/2}  →  t_crítico = **±{vc:.4f}**")
-        interp = (f"Con {gl} gl y α={val_a}, **t_crítico = ±{vc:.4f}**. "
-                  f"Si |t calculado| > {vc:.4f} → se rechaza H₀.")
-        return vc, pasos, interp, True
-
-
-def calcular_chi2(gl, tipo, val_a):
-    pasos = []
-    dist = stats.chi2(df=gl)
-    pasos.append(f"**1 — Distribución**\n\nχ²({gl})  —  Media = {gl}, Varianza = {2*gl}. Solo valores ≥ 0.")
-
-    if tipo == 'izquierda':
-        prob = dist.cdf(val_a)
-        pasos.append(f"**2 — Probabilidad acumulada**\n\nP(χ² ≤ {val_a}) = **{prob:.4f}**")
-        interp = f"Con {gl} gl, P(χ² ≤ {val_a}) = **{prob:.4f}** ({prob*100:.2f}%)."
-        return prob, pasos, interp, False
-
-    elif tipo == 'derecha':
-        pi = dist.cdf(val_a); prob = 1 - pi
-        concl = ("p < 0.05 → se rechazaría H₀ (hay asociación)." if prob < 0.05
-                 else "p ≥ 0.05 → no se rechazaría H₀.")
-        pasos.append(f"**2 — p-valor**\n\nP(χ² ≥ {val_a}) = 1 − {pi:.4f} = **{prob:.4f}**\n\n{concl}")
-        interp = f"Con {gl} gl, P(χ² ≥ {val_a}) = **{prob:.4f}** ({prob*100:.2f}%). {concl}"
-        return prob, pasos, interp, False
-
-    elif tipo == 'valor_critico':
-        vc = dist.ppf(1 - val_a)
-        pasos.append(f"**2 — Valor crítico (α = {val_a})**\n\n"
-                     f"χ²_crítico = **{vc:.4f}**")
-        interp = (f"Con {gl} gl y α={val_a}, **χ²_crítico = {vc:.4f}**. "
-                  f"Si χ² calculado > {vc:.4f} → se rechaza H₀.")
-        return vc, pasos, interp, True
-
-
-def calcular_f(gl1, gl2, tipo, val_a):
-    pasos = []
-    dist = stats.f(dfn=gl1, dfd=gl2)
-    pasos.append(f"**1 — Distribución**\n\nF({gl1},{gl2})  —  Cociente de dos χ². Solo valores positivos.")
-
-    if tipo == 'derecha':
-        pi = dist.cdf(val_a); prob = 1 - pi
-        concl = ("p < 0.05 → se rechaza H₀ (grupos difieren)." if prob < 0.05
-                 else "p ≥ 0.05 → no hay evidencia para rechazar H₀.")
-        pasos.append(f"**2 — p-valor**\n\nP(F ≥ {val_a}) = 1 − {pi:.4f} = **{prob:.4f}**\n\n{concl}")
-        interp = f"Con F({gl1},{gl2}), F={val_a} → **p-valor = {prob:.4f}**. {concl}"
-        return prob, pasos, interp, False
-
-    elif tipo == 'valor_critico':
-        vc = dist.ppf(1 - val_a)
-        pasos.append(f"**2 — Valor crítico (α = {val_a})**\n\nF_crítico = **{vc:.4f}**")
-        interp = (f"Con F({gl1},{gl2}) y α={val_a}, **F_crítico = {vc:.4f}**. "
-                  f"Si F calculado > {vc:.4f} → se rechaza H₀.")
-        return vc, pasos, interp, True
-
-
-# ============================================================
-# FUNCIÓN DE GRÁFICO — TEMA DARK
-# ============================================================
-BG_GRAFICA  = "#040D1E"   # fondo del gráfico
-BG_EJES     = "#040D1E"
-GRID_COLOR  = "#1A2840"
-TEXT_COLOR  = "#64748B"
-TITULO_COLOR= "#CBD5E1"
-CURVA_COLOR = "#E2E8F0"
-
-COLORES_SOMBRA = {
-    'normal': '#3B82F6',   # azul
-    't':      '#F97316',   # naranja
-    'chi2':   '#A855F7',   # púrpura
-    'f':      '#EF4444',   # rojo
-}
-
-def crear_grafico(dist_key, params, tipo_sombra=None, lim_a=None, lim_b=None):
-    color = COLORES_SOMBRA.get(dist_key, '#3B82F6')
-
-    fig, ax = plt.subplots(figsize=(7.5, 3.8))
-    fig.patch.set_facecolor(BG_GRAFICA)
-    ax.set_facecolor(BG_EJES)
-
-    # Configurar distribución y rango X
-    if dist_key == 'normal':
-        m, s = params['media'], params['sigma']
-        d = stats.norm(loc=m, scale=s)
-        xmin, xmax = m - 4.5*s, m + 4.5*s
-        titulo = f'Normal   N(μ={m},  σ={s})'
-
-    elif dist_key == 't':
-        gl = params['gl']
-        d = stats.t(df=gl)
-        xmin, xmax = -5.0, 5.0
-        titulo = f't de Student   t(gl={gl})'
-
-    elif dist_key == 'chi2':
-        gl = params['gl']
-        d = stats.chi2(df=gl)
-        xmin, xmax = 0.0, d.ppf(0.999)
-        titulo = f'Chi-cuadrado   χ²(gl={gl})'
-
-    elif dist_key == 'f':
-        g1, g2 = params['gl1'], params['gl2']
-        d = stats.f(dfn=g1, dfd=g2)
-        xmin, xmax = 0.0, d.ppf(0.999)
-        titulo = f'F de Fisher   F({g1}, {g2})'
-
-    x = np.linspace(xmin, xmax, 700)
-    y = d.pdf(x)
-
-    # Curva base con ligero glow
-    ax.plot(x, y, color=CURVA_COLOR, linewidth=2.0, zorder=3, alpha=0.9)
-    ax.fill_between(x, y, alpha=0.04, color='#60A5FA')
-
-    # Área sombreada
-    if tipo_sombra == 'izquierda' and lim_a is not None:
-        m_ = x <= lim_a
-        ax.fill_between(x[m_], y[m_], alpha=0.55, color=color,
-                        label=f'Área sombreada', zorder=2)
-        ax.axvline(x=lim_a, color='#F87171', linestyle='--', linewidth=1.8, zorder=4, alpha=0.9)
-
-    elif tipo_sombra == 'derecha' and lim_a is not None:
-        m_ = x >= lim_a
-        ax.fill_between(x[m_], y[m_], alpha=0.55, color=color,
-                        label=f'Área sombreada', zorder=2)
-        ax.axvline(x=lim_a, color='#F87171', linestyle='--', linewidth=1.8, zorder=4, alpha=0.9)
-
-    elif tipo_sombra == 'entre' and lim_a is not None and lim_b is not None:
-        m_ = (x >= lim_a) & (x <= lim_b)
-        ax.fill_between(x[m_], y[m_], alpha=0.55, color=color,
-                        label=f'Área sombreada', zorder=2)
-        ax.axvline(x=lim_a, color='#F87171', linestyle='--', linewidth=1.6, zorder=4, alpha=0.9)
-        ax.axvline(x=lim_b, color='#F87171', linestyle='--', linewidth=1.6, zorder=4, alpha=0.9)
-
-    # Estilo
-    ax.set_xlabel('Valor', fontsize=9.5, color=TEXT_COLOR)
-    ax.set_ylabel('Densidad  f(x)', fontsize=9.5, color=TEXT_COLOR, rotation=0,
-                  labelpad=8)
-    ax.yaxis.set_label_coords(-0.01, 1.02)
-    ax.set_title(titulo, fontsize=11.5, fontweight='bold', color=TITULO_COLOR, pad=10)
-    ax.set_ylim(bottom=0)
-    ax.grid(True, alpha=0.25, linestyle='--', color=GRID_COLOR)
-    for sp in ['top', 'right']:
-        ax.spines[sp].set_visible(False)
-    ax.spines['left'].set_color(GRID_COLOR)
-    ax.spines['bottom'].set_color(GRID_COLOR)
-    ax.tick_params(colors=TEXT_COLOR, labelsize=8.5)
-
-    if tipo_sombra:
-        ax.legend(['Área = Probabilidad'], fontsize=8.5, loc='upper right',
-                  framealpha=0.25, facecolor='#0D1628', edgecolor='#1E3055',
-                  labelcolor='#94A3B8')
-
-    ax.annotate('El área bajo la curva = probabilidad',
-                xy=(0.98, 1.045), xycoords='axes fraction',
-                fontsize=7.5, color='#334155', style='italic', va='bottom', ha='right',
-                annotation_clip=False)
-
-    plt.tight_layout(pad=0.8)
-    return fig
-
-
-# ============================================================
-# MOSTRAR RESULTADO + PASOS (visibles directamente)
-# ============================================================
+# ================================================================
+# BLOQUE 3 — FUNCIONES DE PRESENTACIÓN
+#
+# Estas funciones arman los componentes visuales reutilizables.
+# No calculan nada matemático: solo reciben datos y los muestran.
+#
+# mostrar_panel() → muestra el resultado, la interpretación y
+#                   los pasos después de hacer un cálculo.
+# paso_header()   → dibuja el numerito circular (① ② ③) con
+#                   el texto del paso al lado.
+# ================================================================
 
 def mostrar_panel(res, interp, pasos, es_valor=False):
+    """Muestra la tarjeta de resultado, la interpretación y los pasos."""
     if es_valor:
         st.markdown(f"""
         <div class="res-card">
@@ -565,29 +365,33 @@ def mostrar_panel(res, interp, pasos, es_valor=False):
         </div>""", unsafe_allow_html=True)
 
     st.markdown(f'<div class="interp">💬 &nbsp;{interp}</div>', unsafe_allow_html=True)
-
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown('<span style="color:#60A5FA;font-weight:700;font-size:.9rem;">📐 Explicación paso a paso</span>',
-                unsafe_allow_html=True)
+    st.markdown(
+        '<span style="color:#60A5FA;font-weight:700;font-size:.9rem;">📐 Explicación paso a paso</span>',
+        unsafe_allow_html=True,
+    )
     for paso in pasos:
         st.markdown(f'<div class="paso-exp">{paso}</div>', unsafe_allow_html=True)
 
 
 def paso_header(n, texto):
+    """Dibuja el círculo numerado con el título del paso."""
     st.markdown(
         f'<div class="paso-wrap">'
         f'<div class="burbuja">{n}</div>'
         f'<div class="paso-lbl">{texto}</div>'
         f'</div>',
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 
 
-# ============================================================
-#                   INTERFAZ PRINCIPAL
-# ============================================================
+# ================================================================
+# BLOQUE 4 — ENCABEZADO PRINCIPAL
+#
+# Lo primero visible en la página: título, descripción y autora.
+# Usa la clase CSS .hdr definida arriba.
+# ================================================================
 
-# ── HEADER ──────────────────────────────────────────────────
 st.markdown("""
 <div class="hdr">
   <h1>📊 Distribuciones Continuas en Bioestadística</h1>
@@ -596,13 +400,26 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ── CONCEPTO CLAVE — siempre visible ────────────────────────
+
+# ================================================================
+# BLOQUE 5 — TARJETAS DE CONCEPTO (siempre visibles)
+#
+# Tres tarjetas horizontales que explican:
+#   1. ¿Qué es una distribución continua?  (azul)
+#   2. Regla clave: área ≠ altura          (morado)
+#   3. ¿Cuándo usar cada distribución?     (verde)
+#
+# st.columns(3) divide la fila en 3 columnas iguales.
+# Cada tarjeta usa HTML con una clase CSS distinta.
+# ================================================================
+
 st.markdown(
     '<p style="color:#60A5FA;font-weight:700;font-size:.9rem;'
     'letter-spacing:.6px;text-transform:uppercase;margin:0 0 12px;">'
     '📌 &nbsp;¿Qué es una distribución continua?</p>',
     unsafe_allow_html=True,
 )
+
 ck1, ck2, ck3 = st.columns(3, gap="small")
 
 with ck1:
@@ -633,16 +450,16 @@ with ck3:
     st.markdown(
         '<div class="ck-verde">'
         '<strong>🗂️ ¿Cuándo usar cada una?</strong><br><br>'
-        '<span style="color:#E2E8F0;font-weight:700;">Normal</span>'
+        '<span style="color:#E2E8F0;font-weight:700;">📈 Normal</span>'
         '<span style="color:#64748B;"> — </span>'
         '<span>datos simétricos, n grande</span><br>'
-        '<span style="color:#E2E8F0;font-weight:700;">t Student</span>'
+        '<span style="color:#E2E8F0;font-weight:700;">📉 t Student</span>'
         '<span style="color:#64748B;"> — </span>'
         '<span>muestra pequeña (n &lt; 30)</span><br>'
-        '<span style="color:#E2E8F0;font-weight:700;">χ²</span>'
+        '<span style="color:#E2E8F0;font-weight:700;">📊 χ²</span>'
         '<span style="color:#64748B;"> — </span>'
         '<span>tablas de independencia</span><br>'
-        '<span style="color:#E2E8F0;font-weight:700;">F Fisher</span>'
+        '<span style="color:#E2E8F0;font-weight:700;">📋 F Fisher</span>'
         '<span style="color:#64748B;"> — </span>'
         '<span>comparar 3+ grupos (ANOVA)</span>'
         '</div>',
@@ -651,9 +468,19 @@ with ck3:
 
 st.markdown("<div style='margin-bottom:18px;'></div>", unsafe_allow_html=True)
 
-# ============================================================
-# PESTAÑAS
-# ============================================================
+
+# ================================================================
+# BLOQUE 6 — PESTAÑAS DE CADA DISTRIBUCIÓN
+#
+# st.tabs() crea 4 pestañas. Cada pestaña contiene:
+#   · Columna izquierda (L): controles de entrada (parámetros,
+#     tipo de cálculo, valores)
+#   · Columna derecha  (R): gráfica + resultado + pasos
+#
+# El estado entre interacciones se guarda en st.session_state,
+# que es como la "memoria" de la app mientras la página está abierta.
+# ================================================================
+
 tab_n, tab_t, tab_c, tab_f = st.tabs([
     "📈  Normal",
     "📉  t de Student",
@@ -662,10 +489,11 @@ tab_n, tab_t, tab_c, tab_f = st.tabs([
 ])
 
 
-# ── NORMAL ──────────────────────────────────────────────────
+# ── PESTAÑA: NORMAL ─────────────────────────────────────────────
 with tab_n:
     L, R = st.columns([1, 1.4], gap="large")
 
+    # -- Controles de entrada ------------------------------------
     with L:
         with st.container(border=True):
             paso_header(1, "Parámetros")
@@ -725,6 +553,7 @@ with tab_n:
                                                  ts_n="izquierda", la_n=r, lb_n=None))
                     st.rerun()
 
+    # -- Gráfica y resultados ------------------------------------
     with R:
         st.markdown(
             '<div class="ficha"><span class="ficha-lbl">¿Cuándo se usa?</span>'
@@ -743,7 +572,7 @@ with tab_n:
                           st.session_state["ps_n"], st.session_state.get("ev_n", False))
 
 
-# ── t DE STUDENT ─────────────────────────────────────────────
+# ── PESTAÑA: t DE STUDENT ────────────────────────────────────────
 with tab_t:
     L, R = st.columns([1, 1.4], gap="large")
 
@@ -825,7 +654,7 @@ with tab_t:
                           st.session_state["ps_t"], st.session_state.get("ev_t", False))
 
 
-# ── CHI-CUADRADO ─────────────────────────────────────────────
+# ── PESTAÑA: CHI-CUADRADO ────────────────────────────────────────
 with tab_c:
     L, R = st.columns([1, 1.4], gap="large")
 
@@ -892,7 +721,7 @@ with tab_c:
                           st.session_state["ps_c"], st.session_state.get("ev_c", False))
 
 
-# ── F DE FISHER ──────────────────────────────────────────────
+# ── PESTAÑA: F DE FISHER ─────────────────────────────────────────
 with tab_f:
     L, R = st.columns([1, 1.4], gap="large")
 
@@ -954,7 +783,10 @@ with tab_f:
                           st.session_state["ps_f"], st.session_state.get("ev_f", False))
 
 
-# ── PIE ──────────────────────────────────────────────────────
+# ================================================================
+# BLOQUE 7 — PIE DE PÁGINA
+# ================================================================
+
 st.divider()
 st.markdown("""
 <div style="text-align:center;color:#334155;font-size:.79rem;padding:4px 0 10px;">
