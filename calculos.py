@@ -216,17 +216,7 @@ def calcular_normal(media, sigma, tipo, val_a, val_b=None):
             ]) +
             _ok("✅ Coincide con el valor esperado.") +
             _titulo("Además, la interpretación también es correcta:") +
-            _blockquote(interp) +
-            _hr() +
-            _titulo("Como prueba adicional, la probabilidad complementaria debería ser:") +
-            _formula(
-                f"P(X ≥ {_fmt(val_a)}) = 1 − {prob:.4f} = <b>{prob_comp:.4f}</b>"
-            ) +
-            _nota(f"o <b style='color:#E2E8F0;'>{prob_comp*100:.2f}%</b>.") +
-            f'<p style="color:#94A3B8;font-size:.86rem;margin:8px 0 2px;">'
-            f'Si al seleccionar “📈 P(X ≥ a)” la aplicación devuelve '
-            f'aproximadamente <b style="color:#E2E8F0;">{prob_comp:.4f}</b>, '
-            f'entonces esa parte también está funcionando bien.</p>'
+            _blockquote(interp)
         )
 
         return prob, [exp], interp, False
@@ -274,17 +264,7 @@ def calcular_normal(media, sigma, tipo, val_a, val_b=None):
             ]) +
             _ok("✅ Coincide con el valor esperado.") +
             _titulo("Además, la interpretación también es correcta:") +
-            _blockquote(interp) +
-            _hr() +
-            _titulo("Como prueba adicional, la probabilidad complementaria debería ser:") +
-            _formula(
-                f"P(X ≤ {_fmt(val_a)}) = 1 − {prob:.4f} = <b>{prob_comp:.4f}</b>"
-            ) +
-            _nota(f"o <b style='color:#E2E8F0;'>{prob_comp*100:.2f}%</b>.") +
-            f'<p style="color:#94A3B8;font-size:.86rem;margin:8px 0 2px;">'
-            f'Si al seleccionar “📉 P(X ≤ a)” la aplicación devuelve '
-            f'aproximadamente <b style="color:#E2E8F0;">{prob_comp:.4f}</b>, '
-            f'entonces esa parte también está funcionando bien.</p>'
+            _blockquote(interp)
         )
 
         return prob, [exp], interp, False
@@ -425,11 +405,7 @@ def calcular_t(gl, tipo, val_a, val_b=None):
             ]) +
             _ok("✅ Coincide con el valor esperado.") +
             _titulo("Además, la interpretación también es correcta:") +
-            _blockquote(interp) +
-            _hr() +
-            _titulo("Como prueba adicional, la probabilidad complementaria debería ser:") +
-            _formula(f"P(T ≥ {_fmt(val_a)}) = 1 − {prob:.4f} = <b>{prob_comp:.4f}</b>") +
-            _nota(f"o <b style='color:#E2E8F0;'>{prob_comp*100:.2f}%</b>.")
+            _blockquote(interp)
         )
 
         return prob, [exp], interp, False
@@ -465,11 +441,7 @@ def calcular_t(gl, tipo, val_a, val_b=None):
             ]) +
             _ok("✅ Coincide con el valor esperado.") +
             _titulo("Además, la interpretación también es correcta:") +
-            _blockquote(interp) +
-            _hr() +
-            _titulo("Como prueba adicional, la probabilidad complementaria debería ser:") +
-            _formula(f"P(T ≤ {_fmt(val_a)}) = 1 − {prob:.4f} = <b>{prob_comp:.4f}</b>") +
-            _nota(f"o <b style='color:#E2E8F0;'>{prob_comp*100:.2f}%</b>.")
+            _blockquote(interp)
         )
 
         return prob, [exp], interp, False
@@ -597,13 +569,7 @@ def calcular_chi2(gl, tipo, val_a):
             ]) +
             _ok("✅ Coincide con el valor esperado.") +
             _titulo("Además, la interpretación también es correcta:") +
-            _blockquote(interp) +
-            _hr() +
-            _titulo("Como prueba adicional, la probabilidad complementaria debería ser:") +
-            _formula(
-                f"P(χ² ≥ {_fmt(val_a)}) = 1 − {prob:.4f} = <b>{prob_comp:.4f}</b>"
-            ) +
-            _nota(f"o <b style='color:#E2E8F0;'>{prob_comp*100:.2f}%</b>.")
+            _blockquote(interp)
         )
 
         return prob, [exp], interp, False
@@ -770,3 +736,4 @@ def calcular_f(gl1, gl2, tipo, val_a):
         )
 
         return vc, [exp], interp, True
+

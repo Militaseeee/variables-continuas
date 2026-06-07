@@ -110,13 +110,13 @@ label, [data-testid="stWidgetLabel"] p,
 /* ── Pestañas (tabs) ───────────────────────────────────── */
 [data-testid="stTabs"] > div:first-child {
     background: #0D1628;
-    border-radius: 12px 12px 0 0;
+    border-radius: 12px;
     padding: 16px;
     border-bottom: 1px solid #1E3055;
 }
 button[data-baseweb="tab"] {
     background: transparent !important;
-    border-radius: 8px 8px 0 0 !important;
+    border-radius: 8px !important;
     color: #64748B !important;
     font-weight: 600 !important;
     padding: 9px 20px !important;
@@ -131,16 +131,18 @@ button[data-baseweb="tab"][aria-selected="true"] {
 [data-testid="stTabPanel"] {
     background: #020817 !important;
     border: 1px solid #1E3055;
-    border-top: none;
-    border-radius: 0 0 14px 14px;
+    border-radius: 12px;
+    margin-top: 8px;
     padding: 24px 28px !important;
 }
 
 /* ── Containers con borde ──────────────────────────────── */
-[data-testid="stVerticalBlockBorderWrapper"] {
+[data-testid="stVerticalBlockBorderWrapper"],
+.st-emotion-cache-130yy1s {
     background: #0D1628 !important;
     border: 1px solid #1E3055 !important;
     border-radius: 12px !important;
+    padding: 16px !important;
 }
 
 /* ── Expanders ─────────────────────────────────────────── */
@@ -148,6 +150,7 @@ button[data-baseweb="tab"][aria-selected="true"] {
     background: #0D1628 !important;
     border: 1px solid #1E3055 !important;
     border-radius: 12px !important;
+    overflow: hidden !important;
 }
 [data-testid="stExpander"] summary p { color: #94A3B8 !important; }
 [data-testid="stExpander"] summary svg { fill: #64748B !important; }
@@ -305,7 +308,7 @@ hr { border-color: #1E3055 !important; }
 
 /* ── .paso-exp → Caja gris por cada paso matemático ───── */
 .paso-exp {
-    background: #0D1628;
+    background: #020817;
     border: 1px solid #1E3055;
     border-radius: 10px;
     padding: 13px 17px;
@@ -315,6 +318,7 @@ hr { border-color: #1E3055 !important; }
     line-height: 1.65;
 }
 .paso-exp strong, .paso-exp b { color: #CBD5E1; }
+.paso-exp > p:first-child { margin-top: 0 !important; }
 
 /* ── Botón principal ───────────────────────────────────── */
 div.stButton > button[kind="primary"],
@@ -372,9 +376,10 @@ def mostrar_panel(res, interp, pasos, es_valor=False, parte="todo"):
             st.markdown(f'<div class="interp">💬 &nbsp;{interp}</div>', unsafe_allow_html=True)
 
     if parte in ("todo", "pasos"):
-        st.markdown("<br>", unsafe_allow_html=True)
         st.markdown(
-            '<span style="color:#60A5FA;font-weight:700;font-size:.9rem;">📐 Explicación paso a paso</span>',
+            '<p style="color:#60A5FA;font-weight:700;font-size:.9rem;'
+            'letter-spacing:.6px;text-transform:uppercase;margin:0 0 8px;">'
+            '📐 &nbsp;Explicación paso a paso</p>',
             unsafe_allow_html=True,
         )
         for paso in pasos:
@@ -527,7 +532,8 @@ with tab_n:
                 if st.button("Calcular probabilidad", type="primary", key="btn_ni"):
                     r, ps, it, ev = calcular_normal(media_n, sigma_n, 'izquierda', va)
                     st.session_state.update(dict(r_n=r, ps_n=ps, it_n=it, ev_n=ev,
-                                                 ts_n="izquierda", la_n=va, lb_n=None))
+                                                 ts_n="izquierda", la_n=va, lb_n=None,
+                                                 ultima_dist="n"))
                     st.rerun()
             elif "ENCIMA" in tipo_n:
                 va = st.number_input("Valor límite (a)", value=float(media_n),
@@ -535,7 +541,8 @@ with tab_n:
                 if st.button("Calcular probabilidad", type="primary", key="btn_nd"):
                     r, ps, it, ev = calcular_normal(media_n, sigma_n, 'derecha', va)
                     st.session_state.update(dict(r_n=r, ps_n=ps, it_n=it, ev_n=ev,
-                                                 ts_n="derecha", la_n=va, lb_n=None))
+                                                 ts_n="derecha", la_n=va, lb_n=None,
+                                                 ultima_dist="n"))
                     st.rerun()
             elif "ENTRE" in tipo_n:
                 c1, c2 = st.columns(2)
@@ -549,7 +556,8 @@ with tab_n:
                     if va < vb:
                         r, ps, it, ev = calcular_normal(media_n, sigma_n, 'entre', va, vb)
                         st.session_state.update(dict(r_n=r, ps_n=ps, it_n=it, ev_n=ev,
-                                                     ts_n="entre", la_n=va, lb_n=vb))
+                                                     ts_n="entre", la_n=va, lb_n=vb,
+                                                     ultima_dist="n"))
                         st.rerun()
             else:
                 perc = st.slider("Percentil (%)", 1, 99, 95, key="nn_p")
@@ -557,7 +565,8 @@ with tab_n:
                 if st.button("Calcular valor X", type="primary", key="btn_np"):
                     r, ps, it, ev = calcular_normal(media_n, sigma_n, 'percentil', perc / 100)
                     st.session_state.update(dict(r_n=r, ps_n=ps, it_n=it, ev_n=True,
-                                                 ts_n="izquierda", la_n=r, lb_n=None))
+                                                 ts_n="izquierda", la_n=r, lb_n=None,
+                                                 ultima_dist="n"))
                     st.rerun()
 
     # -- Gráfica (columna derecha, siempre visible) ---------------
@@ -572,21 +581,9 @@ with tab_n:
                               st.session_state.get("ts_n"),
                               st.session_state.get("la_n"),
                               st.session_state.get("lb_n"))
-        st.pyplot(fig_n, use_container_width=True)
+        st.pyplot(fig_n, width='stretch')
         plt.close(fig_n)
 
-    # -- Card resultado (aparece solo tras calcular) --------------
-    if "r_n" in st.session_state:
-        with st.container(border=True):
-            rL, rR = st.columns([1, 1.4], gap="large")
-            with rL:
-                mostrar_panel(st.session_state["r_n"], st.session_state["it_n"],
-                              st.session_state["ps_n"], st.session_state.get("ev_n", False),
-                              parte="resultado")
-            with rR:
-                mostrar_panel(st.session_state["r_n"], st.session_state["it_n"],
-                              st.session_state["ps_n"], st.session_state.get("ev_n", False),
-                              parte="pasos")
 
 
 # ── PESTAÑA: t DE STUDENT ────────────────────────────────────────
@@ -618,17 +615,19 @@ with tab_t:
             paso_header(3, "Valores y cálculo")
             if "≤ a)" in tipo_t:
                 va = st.number_input("Valor de a", value=0.0, step=0.1, format="%.4f", key="tt_a")
-                if st.button("Calcular", type="primary", key="btn_ti", use_container_width=True):
+                if st.button("Calcular", type="primary", key="btn_ti", width='stretch'):
                     r, ps, it, ev = calcular_t(gl_t, 'izquierda', va)
                     st.session_state.update(dict(r_t=r, ps_t=ps, it_t=it, ev_t=ev,
-                                                 ts_t="izquierda", la_t=va, lb_t=None))
+                                                 ts_t="izquierda", la_t=va, lb_t=None,
+                                                 ultima_dist="t"))
                     st.rerun()
             elif "≥ a)" in tipo_t:
                 va = st.number_input("Valor de a", value=0.0, step=0.1, format="%.4f", key="tt_ad")
-                if st.button("Calcular", type="primary", key="btn_td", use_container_width=True):
+                if st.button("Calcular", type="primary", key="btn_td", width='stretch'):
                     r, ps, it, ev = calcular_t(gl_t, 'derecha', va)
                     st.session_state.update(dict(r_t=r, ps_t=ps, it_t=it, ev_t=ev,
-                                                 ts_t="derecha", la_t=va, lb_t=None))
+                                                 ts_t="derecha", la_t=va, lb_t=None,
+                                                 ultima_dist="t"))
                     st.rerun()
             elif "≤ T ≤" in tipo_t:
                 c1, c2 = st.columns(2)
@@ -636,21 +635,23 @@ with tab_t:
                 vb = c2.number_input("Límite b", value=2.0, step=0.1, format="%.4f", key="tt_be")
                 if va >= vb:
                     st.warning("⚠️ a debe ser menor que b.")
-                if st.button("Calcular", type="primary", key="btn_te", use_container_width=True):
+                if st.button("Calcular", type="primary", key="btn_te", width='stretch'):
                     if va < vb:
                         r, ps, it, ev = calcular_t(gl_t, 'entre', va, vb)
                         st.session_state.update(dict(r_t=r, ps_t=ps, it_t=it, ev_t=ev,
-                                                     ts_t="entre", la_t=va, lb_t=vb))
+                                                     ts_t="entre", la_t=va, lb_t=vb,
+                                                     ultima_dist="t"))
                         st.rerun()
             else:
                 alpha_t = st.select_slider("Nivel de significancia α", key="at_t",
                                            options=[0.10, 0.05, 0.01, 0.001], value=0.05,
                                            format_func=lambda x: f"α = {x}  ({x*100:.1f}%)")
                 if st.button("Calcular valor crítico", type="primary",
-                             key="btn_tvc", use_container_width=True):
+                             key="btn_tvc", width='stretch'):
                     r, ps, it, ev = calcular_t(gl_t, 'valor_critico', alpha_t)
                     st.session_state.update(dict(r_t=r, ps_t=ps, it_t=it, ev_t=True,
-                                                 ts_t="entre", la_t=-r, lb_t=r))
+                                                 ts_t="entre", la_t=-r, lb_t=r,
+                                                 ultima_dist="t"))
                     st.rerun()
 
     with R:
@@ -664,20 +665,9 @@ with tab_t:
                               st.session_state.get("ts_t"),
                               st.session_state.get("la_t"),
                               st.session_state.get("lb_t"))
-        st.pyplot(fig_t, use_container_width=True)
+        st.pyplot(fig_t, width='stretch')
         plt.close(fig_t)
 
-    if "r_t" in st.session_state:
-        with st.container(border=True):
-            rL, rR = st.columns([1, 1.4], gap="large")
-            with rL:
-                mostrar_panel(st.session_state["r_t"], st.session_state["it_t"],
-                              st.session_state["ps_t"], st.session_state.get("ev_t", False),
-                              parte="resultado")
-            with rR:
-                mostrar_panel(st.session_state["r_t"], st.session_state["it_t"],
-                              st.session_state["ps_t"], st.session_state.get("ev_t", False),
-                              parte="pasos")
 
 
 # ── PESTAÑA: CHI-CUADRADO ────────────────────────────────────────
@@ -704,29 +694,32 @@ with tab_c:
             if "acumulada" in tipo_c:
                 va = st.number_input("Valor de a", value=float(gl_c),
                                      min_value=0.001, step=0.5, format="%.4f", key="cc_a")
-                if st.button("Calcular", type="primary", key="btn_ci", use_container_width=True):
+                if st.button("Calcular", type="primary", key="btn_ci", width='stretch'):
                     r, ps, it, ev = calcular_chi2(gl_c, 'izquierda', va)
                     st.session_state.update(dict(r_c=r, ps_c=ps, it_c=it, ev_c=ev,
-                                                 ts_c="izquierda", la_c=va))
+                                                 ts_c="izquierda", la_c=va,
+                                                 ultima_dist="c"))
                     st.rerun()
             elif "p-valor" in tipo_c:
                 va = st.number_input("Estadístico χ² calculado", value=float(gl_c),
                                      min_value=0.001, step=0.5, format="%.4f", key="cc_ad")
                 if st.button("Calcular p-valor", type="primary",
-                             key="btn_cd", use_container_width=True):
+                             key="btn_cd", width='stretch'):
                     r, ps, it, ev = calcular_chi2(gl_c, 'derecha', va)
                     st.session_state.update(dict(r_c=r, ps_c=ps, it_c=it, ev_c=ev,
-                                                 ts_c="derecha", la_c=va))
+                                                 ts_c="derecha", la_c=va,
+                                                 ultima_dist="c"))
                     st.rerun()
             else:
                 alpha_c = st.select_slider("Nivel de significancia α", key="at_c",
                                            options=[0.10, 0.05, 0.01], value=0.05,
                                            format_func=lambda x: f"α = {x}  ({x*100:.1f}%)")
                 if st.button("Calcular valor crítico", type="primary",
-                             key="btn_cvc", use_container_width=True):
+                             key="btn_cvc", width='stretch'):
                     r, ps, it, ev = calcular_chi2(gl_c, 'valor_critico', alpha_c)
                     st.session_state.update(dict(r_c=r, ps_c=ps, it_c=it, ev_c=True,
-                                                 ts_c="derecha", la_c=r))
+                                                 ts_c="derecha", la_c=r,
+                                                 ultima_dist="c"))
                     st.rerun()
 
     with R:
@@ -740,20 +733,9 @@ with tab_c:
         fig_c = crear_grafico("chi2", {"gl": gl_c},
                               st.session_state.get("ts_c"),
                               st.session_state.get("la_c"))
-        st.pyplot(fig_c, use_container_width=True)
+        st.pyplot(fig_c, width='stretch')
         plt.close(fig_c)
 
-    if "r_c" in st.session_state:
-        with st.container(border=True):
-            rL, rR = st.columns([1, 1.4], gap="large")
-            with rL:
-                mostrar_panel(st.session_state["r_c"], st.session_state["it_c"],
-                              st.session_state["ps_c"], st.session_state.get("ev_c", False),
-                              parte="resultado")
-            with rR:
-                mostrar_panel(st.session_state["r_c"], st.session_state["it_c"],
-                              st.session_state["ps_c"], st.session_state.get("ev_c", False),
-                              parte="pasos")
 
 
 # ── PESTAÑA: F DE FISHER ─────────────────────────────────────────
@@ -784,20 +766,22 @@ with tab_f:
                 va = st.number_input("Estadístico F calculado", value=2.0,
                                      min_value=0.001, step=0.1, format="%.4f", key="ff_a")
                 if st.button("Calcular p-valor", type="primary",
-                             key="btn_fd", use_container_width=True):
+                             key="btn_fd", width='stretch'):
                     r, ps, it, ev = calcular_f(gl1_f, gl2_f, 'derecha', va)
                     st.session_state.update(dict(r_f=r, ps_f=ps, it_f=it, ev_f=ev,
-                                                 ts_f="derecha", la_f=va))
+                                                 ts_f="derecha", la_f=va,
+                                                 ultima_dist="f"))
                     st.rerun()
             else:
                 alpha_f = st.select_slider("Nivel de significancia α", key="at_f",
                                            options=[0.10, 0.05, 0.01], value=0.05,
                                            format_func=lambda x: f"α = {x}  ({x*100:.1f}%)")
                 if st.button("Calcular valor crítico F", type="primary",
-                             key="btn_fvc", use_container_width=True):
+                             key="btn_fvc", width='stretch'):
                     r, ps, it, ev = calcular_f(gl1_f, gl2_f, 'valor_critico', alpha_f)
                     st.session_state.update(dict(r_f=r, ps_f=ps, it_f=it, ev_f=True,
-                                                 ts_f="derecha", la_f=r))
+                                                 ts_f="derecha", la_f=r,
+                                                 ultima_dist="f"))
                     st.rerun()
 
     with R:
@@ -811,24 +795,215 @@ with tab_f:
         fig_f = crear_grafico("f", {"gl1": gl1_f, "gl2": gl2_f},
                               st.session_state.get("ts_f"),
                               st.session_state.get("la_f"))
-        st.pyplot(fig_f, use_container_width=True)
+        st.pyplot(fig_f, width='stretch')
         plt.close(fig_f)
 
-    if "r_f" in st.session_state:
-        with st.container(border=True):
-            rL, rR = st.columns([1, 1.4], gap="large")
-            with rL:
-                mostrar_panel(st.session_state["r_f"], st.session_state["it_f"],
-                              st.session_state["ps_f"], st.session_state.get("ev_f", False),
-                              parte="resultado")
-            with rR:
-                mostrar_panel(st.session_state["r_f"], st.session_state["it_f"],
-                              st.session_state["ps_f"], st.session_state.get("ev_f", False),
-                              parte="pasos")
 
 
 # ================================================================
-# BLOQUE 7 — PIE DE PÁGINA
+# BLOQUE 7 — RESULTADO (fuera de los tabs, en su propio contenedor)
+#
+# Aparece únicamente después de presionar un botón de cálculo.
+# ultima_dist indica qué distribución se calculó por última vez.
+# ================================================================
+
+_ud = st.session_state.get("ultima_dist")
+
+if _ud == "n" and "r_n" in st.session_state:
+    _ts = st.session_state.get("ts_n"); _la = st.session_state.get("la_n"); _lb = st.session_state.get("lb_n"); _r = st.session_state["r_n"]
+    if _ts == "izquierda":
+        _desc_g = (
+            f"La curva en forma de campana representa la distribución Normal con "
+            f"<b>μ = {media_n}</b> (centro) y <b>σ = {sigma_n}</b> (ancho). "
+            f"La línea vertical en <b>a = {_la:.4f}</b> divide el área total en dos partes. "
+            f"La <strong>zona azul sombreada a la izquierda</strong> acumula el <b>{_r*100:.2f}%</b> del área — "
+            f"eso significa que el {_r*100:.2f}% de las observaciones son ≤ {_la:.4f}. "
+            f"El área blanca restante ({(1-_r)*100:.2f}%) corresponde a P(X &gt; {_la:.4f})."
+        )
+    elif _ts == "derecha":
+        _desc_g = (
+            f"La campana está centrada en <b>μ = {media_n}</b> con dispersión <b>σ = {sigma_n}</b>. "
+            f"La línea vertical en <b>a = {_la:.4f}</b> separa la cola derecha. "
+            f"La <strong>zona azul sombreada a la derecha</strong> representa el <b>{_r*100:.2f}%</b> del área total — "
+            f"la probabilidad de que una observación supere {_la:.4f}. "
+            f"La parte izquierda sin sombrear ({(1-_r)*100:.2f}%) es P(X &lt; {_la:.4f}). "
+            f"Recuerda: el área total bajo toda la curva siempre es 1 (= 100%)."
+        )
+    elif _ts == "entre":
+        _desc_g = (
+            f"La campana se centra en <b>μ = {media_n}</b>. Las dos líneas verticales marcan "
+            f"<b>a = {_la:.4f}</b> y <b>b = {_lb:.4f}</b>. "
+            f"La <strong>zona azul entre ambas líneas</strong> acumula el <b>{_r*100:.2f}%</b> del área — "
+            f"la probabilidad de que X caiga en ese intervalo. "
+            f"Las dos colas externas (sin sombra) suman el {(1-_r)*100:.2f}% restante: "
+            f"{_r*50:.2f}% a cada lado aproximadamente."
+        )
+    else:
+        _desc_g = (
+            f"La línea vertical en <b>X = {_la:.4f}</b> es el percentil solicitado. "
+            f"La <strong>zona azul a la izquierda</strong> representa exactamente el <b>{_r*100:.2f}%</b> del área total — "
+            f"significa que el {_r*100:.2f}% de todos los valores de esta distribución "
+            f"N(μ={media_n}, σ={sigma_n}) son menores que {_la:.4f}. "
+            f"Solo el {(1-_r)*100:.2f}% de los valores superan ese punto."
+        )
+    with st.container(border=True):
+        rL, rR = st.columns([1, 1.4], gap="large")
+        with rL:
+            st.markdown(
+                '<p style="color:#60A5FA;font-weight:700;font-size:.9rem;'
+                'letter-spacing:.6px;text-transform:uppercase;margin:0 0 8px;">'
+                '📈 &nbsp;Distribución Normal</p>',
+                unsafe_allow_html=True,
+            )
+            _fig = crear_grafico("normal", {"media": media_n, "sigma": sigma_n},
+                                 _ts, _la, _lb)
+            st.pyplot(_fig, width='stretch')
+            plt.close(_fig)
+            st.markdown(f'<div class="ficha">{_desc_g}</div>', unsafe_allow_html=True)
+            mostrar_panel(_r, st.session_state["it_n"],
+                          st.session_state["ps_n"], st.session_state.get("ev_n", False),
+                          parte="resultado")
+        with rR:
+            mostrar_panel(_r, st.session_state["it_n"],
+                          st.session_state["ps_n"], st.session_state.get("ev_n", False),
+                          parte="pasos")
+
+elif _ud == "t" and "r_t" in st.session_state:
+    _ts = st.session_state.get("ts_t"); _la = st.session_state.get("la_t"); _lb = st.session_state.get("lb_t"); _r = st.session_state["r_t"]
+    if _ts == "izquierda":
+        _desc_g = (
+            f"La curva t con <b>{gl_t} grados de libertad</b> es simétrica y acampanada, pero con "
+            f"colas más gruesas que la Normal — esto refleja la mayor incertidumbre en muestras pequeñas. "
+            f"La <strong>zona azul a la izquierda</strong> de <b>a = {_la:.4f}</b> acumula <b>P(T ≤ {_la:.4f}) = {_r:.4f}</b> ({_r*100:.2f}%). "
+            f"A mayor número de gl, la curva t se acerca más a la Normal estándar."
+        )
+    elif _ts == "derecha":
+        _desc_g = (
+            f"La <strong>zona azul a la derecha</strong> de <b>a = {_la:.4f}</b> es el <b>p-valor = {_r:.4f}</b> ({_r*100:.2f}%). "
+            f"El p-valor indica la probabilidad de obtener un estadístico tan extremo como el observado <em>si H₀ fuera verdadera</em>. "
+            f"Con {gl_t} gl: si p-valor &lt; 0.05 → evidencia significativa para rechazar H₀; "
+            f"si p-valor ≥ 0.05 → no hay suficiente evidencia para rechazarla."
+        )
+    elif _ts == "entre":
+        _desc_g = (
+            f"Las dos líneas verticales en <b>{_la:.4f}</b> y <b>{_lb:.4f}</b> son los valores críticos bilaterales. "
+            f"La <strong>zona azul central</strong> ({_r*100:.2f}%) es la <em>región de no rechazo</em> de H₀. "
+            f"Las <strong>dos colas externas</strong> ({(1-_r)*100:.2f}% en total, {(1-_r)*50:.2f}% cada una) "
+            f"forman la región de rechazo bilateral con {gl_t} grados de libertad."
+        )
+    else:
+        _desc_g = (
+            f"Las líneas verticales marcan los <b>valores críticos ±{_lb:.4f}</b> con {gl_t} gl. "
+            f"Si el estadístico t calculado en tu experimento supera este umbral en valor absoluto, "
+            f"cae en la zona de rechazo (colas sombreadas). "
+            f"Regla: <b>|t calculado| &gt; {_lb:.4f}</b> → se rechaza H₀ al nivel α especificado."
+        )
+    with st.container(border=True):
+        rL, rR = st.columns([1, 1.4], gap="large")
+        with rL:
+            st.markdown(
+                '<p style="color:#60A5FA;font-weight:700;font-size:.9rem;'
+                'letter-spacing:.6px;text-transform:uppercase;margin:0 0 8px;">'
+                '📉 &nbsp;Distribución t de Student</p>',
+                unsafe_allow_html=True,
+            )
+            _fig = crear_grafico("t", {"gl": gl_t}, _ts, _la, _lb)
+            st.pyplot(_fig, width='stretch')
+            plt.close(_fig)
+            st.markdown(f'<div class="ficha">{_desc_g}</div>', unsafe_allow_html=True)
+            mostrar_panel(_r, st.session_state["it_t"],
+                          st.session_state["ps_t"], st.session_state.get("ev_t", False),
+                          parte="resultado")
+        with rR:
+            mostrar_panel(_r, st.session_state["it_t"],
+                          st.session_state["ps_t"], st.session_state.get("ev_t", False),
+                          parte="pasos")
+
+elif _ud == "c" and "r_c" in st.session_state:
+    _ts = st.session_state.get("ts_c"); _la = st.session_state.get("la_c"); _r = st.session_state["r_c"]
+    if _ts == "izquierda":
+        _desc_g = (
+            f"La distribución χ² con <b>{gl_c} grados de libertad</b> es <em>asimétrica hacia la derecha</em> "
+            f"y solo toma valores ≥ 0 — a diferencia de la Normal, no es simétrica. "
+            f"La <strong>zona azul a la izquierda</strong> de <b>χ² = {_la:.4f}</b> acumula el <b>{_r*100:.2f}%</b> del área. "
+            f"A más grados de libertad, la curva se aplana y se desplaza a la derecha, acercándose a una forma más simétrica."
+        )
+    elif _ts == "derecha":
+        _desc_g = (
+            f"La <strong>zona azul a la derecha</strong> de <b>χ² = {_la:.4f}</b> es el <b>p-valor = {_r:.4f}</b> ({_r*100:.2f}%). "
+            f"Esta cola derecha es la región donde caen los estadísticos χ² grandes — "
+            f"que ocurren cuando hay gran discrepancia entre frecuencias observadas y esperadas. "
+            f"Con {gl_c} gl: si p-valor &lt; 0.05 → existe asociación estadísticamente significativa (se rechaza H₀)."
+        )
+    else:
+        _desc_g = (
+            f"La línea vertical marca el <b>valor crítico χ² = {_la:.4f}</b> con {gl_c} gl. "
+            f"La <strong>zona sombreada a la derecha</strong> representa el nivel de significancia α. "
+            f"Si el estadístico χ² calculado de tu tabla supera este umbral, "
+            f"los datos muestran una asociación estadísticamente significativa — se rechaza H₀."
+        )
+    with st.container(border=True):
+        rL, rR = st.columns([1, 1.4], gap="large")
+        with rL:
+            st.markdown(
+                '<p style="color:#60A5FA;font-weight:700;font-size:.9rem;'
+                'letter-spacing:.6px;text-transform:uppercase;margin:0 0 8px;">'
+                '📊 &nbsp;Distribución Chi-cuadrado χ²</p>',
+                unsafe_allow_html=True,
+            )
+            _fig = crear_grafico("chi2", {"gl": gl_c}, _ts, _la)
+            st.pyplot(_fig, width='stretch')
+            plt.close(_fig)
+            st.markdown(f'<div class="ficha">{_desc_g}</div>', unsafe_allow_html=True)
+            mostrar_panel(_r, st.session_state["it_c"],
+                          st.session_state["ps_c"], st.session_state.get("ev_c", False),
+                          parte="resultado")
+        with rR:
+            mostrar_panel(_r, st.session_state["it_c"],
+                          st.session_state["ps_c"], st.session_state.get("ev_c", False),
+                          parte="pasos")
+
+elif _ud == "f" and "r_f" in st.session_state:
+    _ts = st.session_state.get("ts_f"); _la = st.session_state.get("la_f"); _r = st.session_state["r_f"]
+    if _ts == "derecha" and not st.session_state.get("ev_f", False):
+        _desc_g = (
+            f"La distribución F con <b>gl₁ = {gl1_f}</b> (numerador) y <b>gl₂ = {gl2_f}</b> (denominador) "
+            f"es asimétrica hacia la derecha y solo toma valores positivos. "
+            f"La <strong>zona azul a la derecha</strong> de <b>F = {_la:.4f}</b> es el <b>p-valor = {_r:.4f}</b> ({_r*100:.2f}%). "
+            f"Un F grande indica que la varianza entre grupos supera la varianza dentro de los grupos — "
+            f"si p-valor &lt; 0.05, las medias de los grupos son estadísticamente diferentes (se rechaza H₀ en ANOVA)."
+        )
+    else:
+        _desc_g = (
+            f"La línea vertical marca el <b>valor crítico F = {_la:.4f}</b> con gl₁ = {gl1_f} y gl₂ = {gl2_f}. "
+            f"La curva F es asimétrica y siempre positiva; su forma depende de ambos parámetros de grados de libertad. "
+            f"Estadísticos F calculados que superen este umbral caen en la <strong>región de rechazo</strong> (cola derecha), "
+            f"indicando que las varianzas o medias de los grupos difieren significativamente."
+        )
+    with st.container(border=True):
+        rL, rR = st.columns([1, 1.4], gap="large")
+        with rL:
+            st.markdown(
+                '<p style="color:#60A5FA;font-weight:700;font-size:.9rem;'
+                'letter-spacing:.6px;text-transform:uppercase;margin:0 0 8px;">'
+                '📋 &nbsp;Distribución F de Fisher</p>',
+                unsafe_allow_html=True,
+            )
+            _fig = crear_grafico("f", {"gl1": gl1_f, "gl2": gl2_f}, _ts, _la)
+            st.pyplot(_fig, width='stretch')
+            plt.close(_fig)
+            st.markdown(f'<div class="ficha">{_desc_g}</div>', unsafe_allow_html=True)
+            mostrar_panel(_r, st.session_state["it_f"],
+                          st.session_state["ps_f"], st.session_state.get("ev_f", False),
+                          parte="resultado")
+        with rR:
+            mostrar_panel(_r, st.session_state["it_f"],
+                          st.session_state["ps_f"], st.session_state.get("ev_f", False),
+                          parte="pasos")
+
+
+# ================================================================
+# BLOQUE 8 — PIE DE PÁGINA
 # ================================================================
 
 st.divider()
