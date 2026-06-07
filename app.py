@@ -30,7 +30,15 @@ st.set_page_config(
 # ============================================================
 st.markdown("""
 <style>
-/* ══ FONDO GLOBAL ══════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+/* ══ FONDO GLOBAL + FUENTE ══════════════════════════════ */
+*, *::before, *::after,
+.stApp, [data-testid="stAppViewContainer"],
+[data-testid="stMain"], [data-testid="stMarkdownContainer"],
+button, input, label, p, span, div {
+    font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif !important;
+}
 .stApp,
 [data-testid="stAppViewContainer"],
 [data-testid="stMain"] { background-color: #020817 !important; }
@@ -38,7 +46,7 @@ st.markdown("""
 [data-testid="stHeader"]  { background: transparent !important; }
 [data-testid="stToolbar"] { display: none !important; }
 #MainMenu, footer         { visibility: hidden !important; }
-.block-container          { padding: 1.4rem 2.4rem 2rem !important; }
+.block-container          { padding: 0.5rem 2.4rem 2rem !important; }
 
 /* ══ INPUTS ═════════════════════════════════════════════ */
 input[type="number"],
@@ -71,7 +79,7 @@ label, [data-testid="stWidgetLabel"] p,
 [data-testid="stTabs"] > div:first-child {
     background: #0D1628;
     border-radius: 12px 12px 0 0;
-    padding: 4px 6px 0;
+    padding: 16px;
     border-bottom: 1px solid #1E3055;
 }
 button[data-baseweb="tab"] {
@@ -130,8 +138,8 @@ hr { border-color: #1E3055 !important; }
     background: linear-gradient(135deg, #020817 0%, #0B1932 45%, #152545 100%);
     border: 1px solid #1E3055;
     border-radius: 16px;
-    padding: 28px 36px;
-    margin-bottom: 20px;
+    padding: 16px;
+    margin: 0 0 20px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(96,165,250,0.1);
     position: relative;
     overflow: hidden;
@@ -147,27 +155,47 @@ hr { border-color: #1E3055 !important; }
 .hdr h1 {
     color: #E2E8F0 !important;
     font-size: 2rem;
-    margin: 0 0 5px;
+    margin: 0 0 5px !important;
+    padding: 0 !important;
     font-weight: 800;
-    letter-spacing: -.5px;
+    letter-spacing: 0.4px;
 }
 .hdr .sub  { color: #94A3B8; font-size: .97rem; margin: 0; }
 .hdr .aut  { color: #475569; font-size: .83rem; margin: 5px 0 0;
              border-top: 1px solid #1E3055; padding-top: 6px; }
 
 /* ─ Ficha de distribución ─ */
-.ficha {
+.ficha, .ficha-purple, .ficha-green {
     background: #0D1628;
     border: 1px solid #1E3055;
-    border-left: 4px solid #3B82F6;
     border-radius: 10px;
-    padding: 13px 16px;
+    padding: 16px;
     font-size: .89rem;
     color: #94A3B8;
     line-height: 1.6;
     margin-bottom: 14px;
 }
-.ficha strong { color: #CBD5E1; }
+.ficha        { border-left: 4px solid #3B82F6; }
+.ficha-purple { border-left: 4px solid #A78BFA; }
+.ficha-green  { border-left: 4px solid #34D399; }
+.ficha strong, .ficha-purple strong, .ficha-green strong { color: #CBD5E1; }
+.ficha-lbl {
+    display: block;
+    color: #60A5FA;
+    font-weight: 700;
+    font-size: .8rem;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    margin-bottom: 6px;
+}
+
+/* ─ Concepto cards (stMarkdownContainer dentro de columnas de concepto) ─ */
+.concepto-col [data-testid="stMarkdownContainer"] > div {
+    background: #0D1628;
+    border: 1px solid #1E3055;
+    border-radius: 12px;
+    padding: 18px;
+}
 
 /* ─ Burbuja de paso ─ */
 .paso-wrap { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
@@ -462,7 +490,9 @@ def crear_grafico(dist_key, params, tipo_sombra=None, lim_a=None, lim_b=None):
 
     # Estilo
     ax.set_xlabel('Valor', fontsize=9.5, color=TEXT_COLOR)
-    ax.set_ylabel('Densidad  f(x)', fontsize=9.5, color=TEXT_COLOR)
+    ax.set_ylabel('Densidad  f(x)', fontsize=9.5, color=TEXT_COLOR, rotation=0,
+                  labelpad=8)
+    ax.yaxis.set_label_coords(-0.01, 1.02)
     ax.set_title(titulo, fontsize=11.5, fontweight='bold', color=TITULO_COLOR, pad=10)
     ax.set_ylim(bottom=0)
     ax.grid(True, alpha=0.25, linestyle='--', color=GRID_COLOR)
@@ -537,16 +567,59 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ── CONCEPTO CLAVE — siempre visible ────────────────────────
-st.markdown('<p style="color:#60A5FA;font-weight:700;font-size:.95rem;margin-bottom:10px;">📌 ¿Qué es una distribución continua?</p>', unsafe_allow_html=True)
-ce1, ce2, ce3 = st.columns(3, gap="medium")
-with ce1:
-    st.info("**¿Qué es?**\n\nDescribe cómo se distribuye la probabilidad en una variable que puede tomar cualquier valor en un rango: estatura, peso, glucosa, presión arterial.")
-with ce2:
-    st.warning("**Regla clave ⚠️**\n\nLa probabilidad **NO** es la altura de la curva — es el **área bajo la curva**. El área total siempre suma **1** (= 100%). P(X = valor exacto) = 0.")
-with ce3:
-    st.success("**¿Cuándo usar cada una?**\n\n📈 **Normal** — datos simétricos, n grande\n📉 **t** — muestra pequeña (n < 30)\n📊 **χ²** — tablas de independencia\n📋 **F** — comparar 3+ grupos (ANOVA)")
+st.markdown(
+    '<p style="color:#60A5FA;font-weight:700;font-size:.9rem;'
+    'letter-spacing:.6px;text-transform:uppercase;margin:0 0 12px;">'
+    '📌 &nbsp;¿Qué es una distribución continua?</p>',
+    unsafe_allow_html=True,
+)
+ck1, ck2, ck3 = st.columns(3, gap="small")
 
-st.markdown("<br>", unsafe_allow_html=True)
+with ck1:
+    st.markdown(
+        '<div class="ficha">'
+        '<strong>🌊 ¿Qué es?</strong><br><br>'
+        'Describe cómo se distribuye la probabilidad en una variable que puede tomar '
+        '<strong>cualquier valor en un rango</strong>: '
+        'estatura, peso, glucosa, presión arterial.'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+with ck2:
+    st.markdown(
+        '<div class="ficha-purple">'
+        '<strong>⚡ Regla clave</strong><br><br>'
+        'La probabilidad <strong>NO</strong> es la altura de la curva — '
+        'es el <strong>área bajo la curva</strong>. '
+        'El área total siempre suma <strong>1 (= 100%)</strong>.<br>'
+        '<span style="color:#6D5A8A;font-size:.82rem;margin-top:4px;display:block;">'
+        'P(X = valor exacto) = 0</span>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+with ck3:
+    st.markdown(
+        '<div class="ficha-green">'
+        '<strong>🗂️ ¿Cuándo usar cada una?</strong><br><br>'
+        '<span style="color:#60A5FA;font-weight:700;">📈 Normal</span>'
+        '<span style="color:#64748B;"> — </span>'
+        '<span>datos simétricos, n grande</span><br>'
+        '<span style="color:#F97316;font-weight:700;">📉 t Student</span>'
+        '<span style="color:#64748B;"> — </span>'
+        '<span>muestra pequeña (n &lt; 30)</span><br>'
+        '<span style="color:#A855F7;font-weight:700;">📊 χ²</span>'
+        '<span style="color:#64748B;"> — </span>'
+        '<span>tablas de independencia</span><br>'
+        '<span style="color:#EF4444;font-weight:700;">📋 F Fisher</span>'
+        '<span style="color:#64748B;"> — </span>'
+        '<span>comparar 3+ grupos (ANOVA)</span>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+st.markdown("<div style='margin-bottom:18px;'></div>", unsafe_allow_html=True)
 
 # ============================================================
 # PESTAÑAS
@@ -564,11 +637,6 @@ with tab_n:
     L, R = st.columns([1, 1.4], gap="large")
 
     with L:
-        st.markdown("""<div class="ficha"><strong>¿Cuándo se usa?</strong>
-        Datos simétricos: estatura, peso, glucosa en población sana, presión arterial.<br>
-        <strong>μ</strong> = centro &nbsp;|&nbsp; <strong>σ</strong> = ancho de la campana.
-        </div>""", unsafe_allow_html=True)
-
         with st.container(border=True):
             paso_header(1, "Parámetros")
             c1, c2 = st.columns(2)
@@ -628,6 +696,12 @@ with tab_n:
                     st.rerun()
 
     with R:
+        st.markdown(
+            '<div class="ficha"><span class="ficha-lbl">¿Cuándo se usa?</span>'
+            'Datos simétricos: estatura, peso, glucosa en población sana, presión arterial. '
+            '<strong>μ</strong> = centro &nbsp;·&nbsp; <strong>σ</strong> = ancho de la campana.</div>',
+            unsafe_allow_html=True,
+        )
         fig_n = crear_grafico("normal", {"media": media_n, "sigma": sigma_n},
                               st.session_state.get("ts_n"),
                               st.session_state.get("la_n"),
@@ -644,11 +718,6 @@ with tab_t:
     L, R = st.columns([1, 1.4], gap="large")
 
     with L:
-        st.markdown("""<div class="ficha"><strong>¿Cuándo se usa?</strong>
-        Muestras pequeñas (n &lt; 30) sin conocer σ poblacional. Muy usada en clínica.<br>
-        <strong>gl</strong> = n − 1. A mayor gl → más se parece a la Normal.
-        </div>""", unsafe_allow_html=True)
-
         with st.container(border=True):
             paso_header(1, "Parámetros")
             gl_t = st.number_input("Grados de libertad (gl = n − 1)",
@@ -709,6 +778,12 @@ with tab_t:
                     st.rerun()
 
     with R:
+        st.markdown(
+            '<div class="ficha"><span class="ficha-lbl">¿Cuándo se usa?</span>'
+            'Muestras pequeñas (n &lt; 30) sin conocer σ poblacional. Muy usada en clínica. '
+            '<strong>gl</strong> = n − 1. A mayor gl → más se parece a la Normal.</div>',
+            unsafe_allow_html=True,
+        )
         fig_t = crear_grafico("t", {"gl": gl_t},
                               st.session_state.get("ts_t"),
                               st.session_state.get("la_t"),
@@ -725,12 +800,6 @@ with tab_c:
     L, R = st.columns([1, 1.4], gap="large")
 
     with L:
-        st.markdown("""<div class="ficha"><strong>¿Cuándo se usa?</strong>
-        Para probar si dos variables categóricas están asociadas.
-        Ej: ¿El sexo está asociado con tener diabetes?<br>
-        <strong>gl</strong> = (filas − 1) × (columnas − 1). Solo valores ≥ 0.
-        </div>""", unsafe_allow_html=True)
-
         with st.container(border=True):
             paso_header(1, "Parámetros")
             gl_c = st.number_input("Grados de libertad (gl)", value=5,
@@ -776,6 +845,13 @@ with tab_c:
                     st.rerun()
 
     with R:
+        st.markdown(
+            '<div class="ficha"><span class="ficha-lbl">¿Cuándo se usa?</span>'
+            'Para probar si dos variables categóricas están asociadas. '
+            'Ej: ¿El sexo está asociado con tener diabetes? '
+            '<strong>gl</strong> = (filas − 1) × (columnas − 1). Solo valores ≥ 0.</div>',
+            unsafe_allow_html=True,
+        )
         fig_c = crear_grafico("chi2", {"gl": gl_c},
                               st.session_state.get("ts_c"),
                               st.session_state.get("la_c"))
@@ -791,12 +867,6 @@ with tab_f:
     L, R = st.columns([1, 1.4], gap="large")
 
     with L:
-        st.markdown("""<div class="ficha"><strong>¿Cuándo se usa?</strong>
-        Para comparar medias de 3 o más grupos (ANOVA).
-        Ej: ¿Tres dietas producen pérdidas de peso distintas?<br>
-        <strong>gl₁</strong> = grupos − 1 &nbsp;|&nbsp; <strong>gl₂</strong> = N total − grupos.
-        </div>""", unsafe_allow_html=True)
-
         with st.container(border=True):
             paso_header(1, "Parámetros")
             c1, c2 = st.columns(2)
@@ -837,6 +907,13 @@ with tab_f:
                     st.rerun()
 
     with R:
+        st.markdown(
+            '<div class="ficha"><span class="ficha-lbl">¿Cuándo se usa?</span>'
+            'Para comparar medias de 3 o más grupos (ANOVA). '
+            'Ej: ¿Tres dietas producen pérdidas de peso distintas? '
+            '<strong>gl₁</strong> = grupos − 1 &nbsp;·&nbsp; <strong>gl₂</strong> = N total − grupos.</div>',
+            unsafe_allow_html=True,
+        )
         fig_f = crear_grafico("f", {"gl1": gl1_f, "gl2": gl2_f},
                               st.session_state.get("ts_f"),
                               st.session_state.get("la_f"))
