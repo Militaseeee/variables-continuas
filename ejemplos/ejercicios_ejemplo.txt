@@ -1,0 +1,94 @@
+========================================================
+EJERCICIOS DE EJEMPLO — DISTRIBUCIONES CONTINUAS
+Materia: Bioestadística | Alejandra Acosta
+========================================================
+
+Estos ejercicios sirven para probar el programa y verificar
+que los resultados son correctos.
+
+--------------------------------------------------------
+EJERCICIO 1 — Distribución Normal
+Contexto: La estatura de mujeres adultas colombianas
+sigue una distribución Normal con media = 161 cm
+y desviación estándar = 7.5 cm.
+
+Pregunta: ¿Qué probabilidad hay de que una mujer
+elegida al azar mida entre 155 cm y 170 cm?
+
+Parámetros en el programa:
+  Distribución: Normal
+  μ = 161,  σ = 7.5
+  Cálculo: P(155 ≤ X ≤ 170)
+
+Resultado esperado: ≈ 0.6731  (67.31%)
+
+Interpretación: Aproximadamente el 70% de las mujeres
+adultas de esta población mide entre 155 y 170 cm.
+
+--------------------------------------------------------
+EJERCICIO 2 — Distribución Normal (cola derecha)
+Contexto: El nivel de glucosa en ayunas en adultos sanos
+sigue una N(90, 12). Se considera "elevado" si supera 110.
+
+Pregunta: ¿Qué probabilidad hay de que un adulto tenga
+glucosa mayor a 110 mg/dL?
+
+Parámetros en el programa:
+  Distribución: Normal
+  μ = 90,  σ = 12
+  Cálculo: P(X ≥ 110)
+
+Resultado esperado: ≈ 0.0478  (4.78%)
+
+--------------------------------------------------------
+EJERCICIO 3 — t de Student (valor crítico)
+Contexto: Un investigador tiene una muestra de n = 16
+pacientes y quiere hacer una prueba de hipótesis con α = 0.05.
+
+Pregunta: ¿Cuál es el valor crítico de t?
+
+Parámetros en el programa:
+  Distribución: t de Student
+  gl = 15  (n − 1 = 16 − 1)
+  Cálculo: Valor crítico, α = 0.05
+
+Resultado esperado: t_crítico = ±2.1314
+
+Interpretación: Si |t calculado| > 2.1314, se rechaza H₀.
+
+--------------------------------------------------------
+EJERCICIO 4 — Chi-cuadrado (valor crítico)
+Contexto: Una prueba de independencia en una tabla 3×2
+tiene gl = (3-1) × (2-1) = 2.
+
+Pregunta: ¿Cuál es el valor crítico de χ² con α = 0.05?
+
+Parámetros en el programa:
+  Distribución: Chi-cuadrado
+  gl = 2
+  Cálculo: Valor crítico, α = 0.05
+
+Resultado esperado: χ²_crítico = 5.9915
+
+Interpretación: Si χ² calculado > 5.9915, se concluye
+que las dos variables NO son independientes (están asociadas).
+
+--------------------------------------------------------
+EJERCICIO 5 — F de Fisher (ANOVA)
+Contexto: Se comparan 3 dietas (grupos) en 30 pacientes
+(10 por grupo). El estadístico F calculado es 4.80.
+
+Parámetros en el programa:
+  Distribución: F de Fisher
+  gl₁ = 2  (grupos − 1 = 3 − 1)
+  gl₂ = 27 (N total − grupos = 30 − 3)
+  Cálculo: P(F ≥ 4.80)
+
+Resultado esperado: p-valor ≈ 0.0164
+
+Interpretación: p < 0.05, se rechaza H₀. Hay evidencia
+de que al menos una dieta produce resultados diferentes.
+
+========================================================
+FIN DE LOS EJERCICIOS
+========================================================
