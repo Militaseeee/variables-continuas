@@ -164,10 +164,11 @@ hr { border-color: #1E3055 !important; }
 .hdr .aut  { color: #475569; font-size: .83rem; margin: 5px 0 0;
              border-top: 1px solid #1E3055; padding-top: 6px; }
 
-/* ─ Ficha de distribución ─ */
-.ficha, .ficha-purple, .ficha-green {
+/* ─ Ficha de distribución (tabs) ─ */
+.ficha {
     background: #0D1628;
     border: 1px solid #1E3055;
+    border-left: 4px solid #3B82F6;
     border-radius: 10px;
     padding: 16px;
     font-size: .89rem;
@@ -175,10 +176,24 @@ hr { border-color: #1E3055 !important; }
     line-height: 1.6;
     margin-bottom: 14px;
 }
-.ficha        { border-left: 4px solid #3B82F6; }
-.ficha-purple { border-left: 4px solid #A78BFA; }
-.ficha-green  { border-left: 4px solid #34D399; }
-.ficha strong, .ficha-purple strong, .ficha-green strong { color: #CBD5E1; }
+.ficha strong { color: #CBD5E1; }
+
+/* ─ Tarjetas de concepto (sección superior, misma altura) ─ */
+.ck-azul, .ck-morado, .ck-verde {
+    background: #0D1628;
+    border: 1px solid #1E3055;
+    border-radius: 10px;
+    padding: 16px;
+    font-size: .89rem;
+    color: #94A3B8;
+    line-height: 1.6;
+    min-height: 170px;
+    box-sizing: border-box;
+}
+.ck-azul   { border-left: 4px solid #3B82F6; }
+.ck-morado { border-left: 4px solid #A78BFA; }
+.ck-verde  { border-left: 4px solid #34D399; }
+.ck-azul strong, .ck-morado strong, .ck-verde strong { color: #CBD5E1; }
 .ficha-lbl {
     display: block;
     color: #60A5FA;
@@ -189,12 +204,26 @@ hr { border-color: #1E3055 !important; }
     margin-bottom: 6px;
 }
 
-/* ─ Concepto cards (stMarkdownContainer dentro de columnas de concepto) ─ */
-.concepto-col [data-testid="stMarkdownContainer"] > div {
-    background: #0D1628;
-    border: 1px solid #1E3055;
-    border-radius: 12px;
-    padding: 18px;
+/* ─ Columnas de concepto — misma altura ─ */
+[data-testid="stHorizontalBlock"] {
+    align-items: stretch !important;
+}
+[data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+    display: flex !important;
+    flex-direction: column !important;
+}
+[data-testid="stHorizontalBlock"] > [data-testid="stColumn"] > [data-testid="stVerticalBlock"] {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+[data-testid="stHorizontalBlock"] > [data-testid="stColumn"] [data-testid="stMarkdownContainer"] {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+[data-testid="stHorizontalBlock"] > [data-testid="stColumn"] [data-testid="stMarkdownContainer"] > div {
+    flex: 1 !important;
 }
 
 /* ─ Burbuja de paso ─ */
@@ -508,8 +537,9 @@ def crear_grafico(dist_key, params, tipo_sombra=None, lim_a=None, lim_b=None):
                   labelcolor='#94A3B8')
 
     ax.annotate('El área bajo la curva = probabilidad',
-                xy=(0.02, 0.96), xycoords='axes fraction',
-                fontsize=8, color='#334155', style='italic', va='top')
+                xy=(0.98, 1.045), xycoords='axes fraction',
+                fontsize=7.5, color='#334155', style='italic', va='bottom', ha='right',
+                annotation_clip=False)
 
     plt.tight_layout(pad=0.8)
     return fig
@@ -577,7 +607,7 @@ ck1, ck2, ck3 = st.columns(3, gap="small")
 
 with ck1:
     st.markdown(
-        '<div class="ficha">'
+        '<div class="ck-azul">'
         '<strong>🌊 ¿Qué es?</strong><br><br>'
         'Describe cómo se distribuye la probabilidad en una variable que puede tomar '
         '<strong>cualquier valor en un rango</strong>: '
@@ -588,7 +618,7 @@ with ck1:
 
 with ck2:
     st.markdown(
-        '<div class="ficha-purple">'
+        '<div class="ck-morado">'
         '<strong>⚡ Regla clave</strong><br><br>'
         'La probabilidad <strong>NO</strong> es la altura de la curva — '
         'es el <strong>área bajo la curva</strong>. '
@@ -601,18 +631,18 @@ with ck2:
 
 with ck3:
     st.markdown(
-        '<div class="ficha-green">'
+        '<div class="ck-verde">'
         '<strong>🗂️ ¿Cuándo usar cada una?</strong><br><br>'
-        '<span style="color:#60A5FA;font-weight:700;">📈 Normal</span>'
+        '<span style="color:#E2E8F0;font-weight:700;">Normal</span>'
         '<span style="color:#64748B;"> — </span>'
         '<span>datos simétricos, n grande</span><br>'
-        '<span style="color:#F97316;font-weight:700;">📉 t Student</span>'
+        '<span style="color:#E2E8F0;font-weight:700;">t Student</span>'
         '<span style="color:#64748B;"> — </span>'
         '<span>muestra pequeña (n &lt; 30)</span><br>'
-        '<span style="color:#A855F7;font-weight:700;">📊 χ²</span>'
+        '<span style="color:#E2E8F0;font-weight:700;">χ²</span>'
         '<span style="color:#64748B;"> — </span>'
         '<span>tablas de independencia</span><br>'
-        '<span style="color:#EF4444;font-weight:700;">📋 F Fisher</span>'
+        '<span style="color:#E2E8F0;font-weight:700;">F Fisher</span>'
         '<span style="color:#64748B;"> — </span>'
         '<span>comparar 3+ grupos (ANOVA)</span>'
         '</div>',
