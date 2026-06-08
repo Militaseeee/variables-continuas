@@ -1,6 +1,6 @@
 # ============================================================
 # verificar_calculos.py
-# Script para comprobar que los calculos del programa son correctos.
+# Comprueba que los cálculos del programa son correctos.
 # Ejecutar con: python pruebas/verificar_calculos.py
 # ============================================================
 # -*- coding: utf-8 -*-
@@ -10,84 +10,108 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='repla
 
 from scipy import stats
 
-# Lista para registrar cuántas pruebas pasan y cuántas fallan
-pruebas_pasadas = 0
-pruebas_fallidas = 0
+pasadas = 0
+fallidas = 0
 
 
-def verificar(nombre, valor_obtenido, valor_esperado, tolerancia=0.0001):
-    """
-    Compara el valor obtenido con el esperado.
-    Imprime PASÓ o FALLÓ según la diferencia.
-    """
-    global pruebas_pasadas, pruebas_fallidas
-    diferencia = abs(valor_obtenido - valor_esperado)
-    if diferencia <= tolerancia:
-        print(f"  PASÓ  {nombre}: {valor_obtenido:.6f} ≈ {valor_esperado:.6f}")
-        pruebas_pasadas += 1
+def verificar(nombre, obtenido, esperado, tol=0.0001):
+    global pasadas, fallidas
+    if abs(obtenido - esperado) <= tol:
+        print(f"  OK   {nombre}: {obtenido:.6f} ≈ {esperado:.6f}")
+        pasadas += 1
     else:
-        print(f"  FALLÓ {nombre}: obtenido={valor_obtenido:.6f}, esperado={valor_esperado:.6f}")
-        pruebas_fallidas += 1
+        print(f"  FALLO {nombre}: obtenido={obtenido:.6f}, esperado={esperado:.6f}")
+        fallidas += 1
 
 
-print("=" * 55)
-print("VERIFICACIÓN DE CÁLCULOS — Distribuciones Continuas")
-print("=" * 55)
+print("=" * 60)
+print("VERIFICACIÓN DE CÁLCULOS")
+print("Distribuciones Continuas + Pruebas de Hipótesis")
+print("=" * 60)
 
-# ---- DISTRIBUCIÓN NORMAL ----
-print("\n[ Normal N(161, 7.5) ]")
+# ---- DISTRIBUCIÓN NORMAL ----------------------------------------
+print("\n[ Normal ]")
 
-# P(155 ≤ X ≤ 170) — ejercicio 1
+# Ejercicio 1: P(155 ≤ X ≤ 170) con N(161, 7.5)
 prob_entre = (stats.norm.cdf(170, loc=161, scale=7.5)
               - stats.norm.cdf(155, loc=161, scale=7.5))
-verificar("P(155 <= X <= 170)", prob_entre, 0.67307)
+verificar("P(155 ≤ X ≤ 170) ~ N(161, 7.5)", prob_entre, 0.67307)
 
-# P(X ≥ 110) con N(90, 12) — ejercicio 2
+# Ejercicio 2: P(X ≥ 110) con N(90, 12)
 prob_der = 1 - stats.norm.cdf(110, loc=90, scale=12)
-verificar("P(X ≥ 110) con N(90,12)", prob_der, 0.04779)
+verificar("P(X ≥ 110) ~ N(90, 12)", prob_der, 0.04779)
 
-# Percentil 95 de N(0, 1) — debe dar ≈ 1.6449
+# Ejercicio 3: Percentil 90 de N(161, 7.5)
+perc_90 = stats.norm.ppf(0.90, loc=161, scale=7.5)
+verificar("Percentil 90 de N(161, 7.5)", perc_90, 170.6116, tol=0.001)
+
+# Percentil 95 de N(0, 1) — valor z estándar
 perc_95 = stats.norm.ppf(0.95)
-verificar("Percentil 95 de N(0,1)", perc_95, 1.64485)
+verificar("Percentil 95 de N(0, 1)", perc_95, 1.64485)
 
-# ---- DISTRIBUCIÓN t de Student ----
+# ---- t de STUDENT -----------------------------------------------
 print("\n[ t de Student ]")
 
-# Valor crítico t(15, α=0.05 bilateral)
-vc_t = stats.t.ppf(0.975, df=15)
-verificar("Valor crítico t(15, α=0.05)", vc_t, 2.13145)
+# Ejercicio 4: valor crítico bilateral gl=19, α=0.05
+vc_t19 = stats.t.ppf(0.975, df=19)
+verificar("Valor crítico t(gl=19, α=0.05) bilateral", vc_t19, 2.09302, tol=0.0001)
 
-# P(T ≤ 2.0) con gl=10
-prob_t = stats.t.cdf(2.0, df=10)
-verificar("P(T ≤ 2.0) con gl=10", prob_t, 0.96327)
+# p-valor de t=2.45 con gl=19 (bilateral)
+pval_t = 2 * (1 - stats.t.cdf(2.45, df=19))
+verificar("p-valor t=2.45, gl=19, bilateral", pval_t, 0.02431, tol=0.001)
 
-# ---- DISTRIBUCIÓN CHI-CUADRADO ----
-print("\n[ Chi-cuadrado ]")
+# Valor crítico clásico gl=15, α=0.05 (bilateral)
+vc_t15 = stats.t.ppf(0.975, df=15)
+verificar("Valor crítico t(gl=15, α=0.05) bilateral", vc_t15, 2.13145)
 
-# Valor crítico χ²(2, α=0.05)
-vc_chi2 = stats.chi2.ppf(0.95, df=2)
-verificar("Valor crítico χ²(2, α=0.05)", vc_chi2, 5.99147)
+# ---- χ² DE INDEPENDENCIA ----------------------------------------
+print("\n[ χ² de Independencia ]")
 
-# P(χ² ≥ 7.815) con gl=3 — debe ser ≈ 0.05
-pval_chi2 = 1 - stats.chi2.cdf(7.815, df=3)
-verificar("P(χ² ≥ 7.815) con gl=3", pval_chi2, 0.05001)
+# Ejercicio 5: tabla 2×2 (120,280,80,320), α=0.05
+a, b, c, d = 120, 280, 80, 320
+n = a + b + c + d
+chi2_calculado = n * (a*d - b*c)**2 / ((a+b)*(c+d)*(a+c)*(b+d))
+verificar("χ² tabla fumador/enfermedad (n=800)", chi2_calculado, 10.6667, tol=0.001)
 
-# ---- DISTRIBUCIÓN F ----
-print("\n[ F de Fisher ]")
+pval_chi2 = 1 - stats.chi2.cdf(chi2_calculado, df=1)
+verificar("p-valor χ² (gl=1)", pval_chi2, 0.0011, tol=0.0001)
 
-# P(F ≥ 4.80) con F(2, 27) — ejercicio 5
-pval_f = 1 - stats.f.cdf(4.80, dfn=2, dfd=27)
-verificar("P(F ≥ 4.80) con F(2,27)", pval_f, 0.01641)
+vc_chi2_1gl = stats.chi2.ppf(0.95, df=1)
+verificar("Valor crítico χ²(gl=1, α=0.05)", vc_chi2_1gl, 3.8415, tol=0.001)
 
-# Valor crítico F(3, 20, α=0.05)
-vc_f = stats.f.ppf(0.95, dfn=3, dfd=20)
-verificar("Valor crítico F(3,20, α=0.05)", vc_f, 3.09839)
+# RR = (a/(a+b)) / (c/(c+d))
+RR = (a / (a + b)) / (c / (c + d))
+verificar("RR tabla fumador/enfermedad", RR, 1.5000, tol=0.001)
 
-# ---- RESUMEN ----
-print("\n" + "=" * 55)
-print(f"RESULTADO: {pruebas_pasadas} pruebas pasaron, {pruebas_fallidas} fallaron.")
-if pruebas_fallidas == 0:
+# OR = (a*d) / (b*c)
+OR = (a * d) / (b * c)
+verificar("OR tabla fumador/enfermedad", OR, 1.7143, tol=0.001)
+
+# Verificación con tabla neutral: valor crítico gl=2
+vc_chi2_2gl = stats.chi2.ppf(0.95, df=2)
+verificar("Valor crítico χ²(gl=2, α=0.05)", vc_chi2_2gl, 5.99147)
+
+# ---- PRUEBA EXACTA DE FISHER ------------------------------------
+print("\n[ Prueba Exacta de Fisher ]")
+
+# Ejercicio 6: tabla (8,2,1,9) — tratamiento vs. control
+# Tratamiento: 8 eventos, 2 sin evento; Control: 1 evento, 9 sin evento
+_, pval_fisher = stats.fisher_exact([[8, 2], [1, 9]])
+verificar("p-valor Fisher tabla (8,2,1,9)", pval_fisher, 0.0055, tol=0.001)
+
+# OR = (8*9)/(2*1) = 36.0
+OR_fisher = (8 * 9) / (2 * 1)
+verificar("OR Fisher tabla (8,2,1,9)", OR_fisher, 36.0, tol=0.001)
+
+# Tabla simétrica de comprobación: OR = 1 → p debe ser 1.0
+_, pval_sym = stats.fisher_exact([[5, 5], [5, 5]])
+verificar("p-valor Fisher tabla simétrica (OR=1)", pval_sym, 1.0, tol=0.001)
+
+# ---- RESUMEN ----------------------------------------------------
+print("\n" + "=" * 60)
+print(f"RESULTADO: {pasadas} pruebas pasaron, {fallidas} fallaron.")
+if fallidas == 0:
     print("Todos los cálculos son correctos.")
 else:
-    print("Revisar las pruebas fallidas.")
-print("=" * 55)
+    print("Revisar las pruebas que fallaron.")
+print("=" * 60)
