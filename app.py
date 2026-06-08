@@ -732,8 +732,24 @@ with tab_c:
 
         with st.container(border=True):
             paso_header(3, "Calcular")
+            _n_chi2    = a_chi2 + b_chi2 + c_chi2 + d_chi2
+            _row1_chi2 = a_chi2 + b_chi2
+            _row2_chi2 = c_chi2 + d_chi2
+            _col1_chi2 = a_chi2 + c_chi2
+            _col2_chi2 = b_chi2 + d_chi2
+            _chi2_ok   = (_n_chi2 > 0
+                          and _row1_chi2 > 0 and _row2_chi2 > 0
+                          and _col1_chi2 > 0 and _col2_chi2 > 0)
+            if _n_chi2 == 0:
+                st.warning("⚠️ La tabla no puede tener todos los valores en cero.")
+            elif not _chi2_ok:
+                st.warning(
+                    "⚠️ Algún total marginal es cero (fila o columna completamente vacía). "
+                    "La prueba χ² requiere que todos los totales de fila y columna sean > 0."
+                )
             if st.button("Calcular prueba χ²", type="primary",
-                         key="btn_chi2ind", width='stretch'):
+                         key="btn_chi2ind", width='stretch',
+                         disabled=not _chi2_ok):
                 _res_ci = calcular_prueba_chi2_ind(
                     a_chi2, b_chi2, c_chi2, d_chi2, alpha_chi2,
                     lbl_r1_chi2, lbl_r2_chi2, lbl_c1_chi2, lbl_c2_chi2,

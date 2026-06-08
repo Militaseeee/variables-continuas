@@ -171,9 +171,14 @@ Indicada cuando alguna frecuencia esperada es < 5 (muestras pequeñas).
 
 ## Fuentes y referencias
 
+### Libros y artículos
+
 - Triola, M. F. (2018). *Estadística* (12.ª ed.). Pearson.
 - Pagano, M., & Gauvreau, K. (2001). *Principles of Biostatistics* (2.ª ed.). Duxbury.
 - Fisher, R. A. (1922). On the interpretation of χ² from contingency tables, and the calculation of P. *Journal of the Royal Statistical Society*, 85(1), 87–94.
+
+### Documentación técnica
+
 - Documentación de `scipy.stats`: https://docs.scipy.org/doc/scipy/reference/stats.html
 - Documentación de Streamlit: https://docs.streamlit.io
 - Documentación de Matplotlib: https://matplotlib.org/stable/index.html
