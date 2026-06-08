@@ -1,13 +1,15 @@
 ========================================================
-EJERCICIOS DE EJEMPLO — DISTRIBUCIONES CONTINUAS
+EJERCICIOS DE EJEMPLO — Distribuciones Continuas y Pruebas de Hipótesis
 Materia: Bioestadística | Alejandra Acosta
 ========================================================
 
 Estos ejercicios sirven para probar el programa y verificar
-que los resultados son correctos.
+que los resultados son correctos. Cada uno incluye los
+parámetros que debe ingresar en la interfaz y el resultado
+esperado para comparar.
 
 --------------------------------------------------------
-EJERCICIO 1 — Distribución Normal
+EJERCICIO 1 — Distribución Normal (área entre dos valores)
 Contexto: La estatura de mujeres adultas colombianas
 sigue una distribución Normal con media = 161 cm
 y desviación estándar = 7.5 cm.
@@ -16,14 +18,16 @@ Pregunta: ¿Qué probabilidad hay de que una mujer
 elegida al azar mida entre 155 cm y 170 cm?
 
 Parámetros en el programa:
-  Distribución: Normal
+  Pestaña: Normal
   μ = 161,  σ = 7.5
-  Cálculo: P(155 ≤ X ≤ 170)
+  Cálculo: P(a ≤ X ≤ b),  a = 155,  b = 170
 
 Resultado esperado: ≈ 0.6731  (67.31%)
 
-Interpretación: Aproximadamente el 70% de las mujeres
+Interpretación: Aproximadamente el 67% de las mujeres
 adultas de esta población mide entre 155 y 170 cm.
+La zona sombreada representa ese 67% del área total
+bajo la curva N(161, 7.5).
 
 --------------------------------------------------------
 EJERCICIO 2 — Distribución Normal (cola derecha)
@@ -34,60 +38,118 @@ Pregunta: ¿Qué probabilidad hay de que un adulto tenga
 glucosa mayor a 110 mg/dL?
 
 Parámetros en el programa:
-  Distribución: Normal
+  Pestaña: Normal
   μ = 90,  σ = 12
-  Cálculo: P(X ≥ 110)
+  Cálculo: P(X ≥ a),  a = 110
 
 Resultado esperado: ≈ 0.0478  (4.78%)
 
---------------------------------------------------------
-EJERCICIO 3 — t de Student (valor crítico)
-Contexto: Un investigador tiene una muestra de n = 16
-pacientes y quiere hacer una prueba de hipótesis con α = 0.05.
-
-Pregunta: ¿Cuál es el valor crítico de t?
-
-Parámetros en el programa:
-  Distribución: t de Student
-  gl = 15  (n − 1 = 16 − 1)
-  Cálculo: Valor crítico, α = 0.05
-
-Resultado esperado: t_crítico = ±2.1314
-
-Interpretación: Si |t calculado| > 2.1314, se rechaza H₀.
+Interpretación: Solo el 4.78% de los adultos sanos
+supera ese nivel de glucosa. Si un paciente lo supera,
+está en el 5% superior de la distribución.
 
 --------------------------------------------------------
-EJERCICIO 4 — Chi-cuadrado (valor crítico)
-Contexto: Una prueba de independencia en una tabla 3×2
-tiene gl = (3-1) × (2-1) = 2.
+EJERCICIO 3 — Distribución Normal (percentil)
+Contexto: Misma distribución de estaturas N(161, 7.5).
 
-Pregunta: ¿Cuál es el valor crítico de χ² con α = 0.05?
+Pregunta: ¿Qué estatura corresponde al percentil 90?
+Es decir, ¿debajo de qué valor se encuentra el 90%
+de la población?
 
 Parámetros en el programa:
-  Distribución: Chi-cuadrado
-  gl = 2
-  Cálculo: Valor crítico, α = 0.05
+  Pestaña: Normal
+  μ = 161,  σ = 7.5
+  Cálculo: Percentil,  p = 0.90
 
-Resultado esperado: χ²_crítico = 5.9915
+Resultado esperado: ≈ 170.61 cm
 
-Interpretación: Si χ² calculado > 5.9915, se concluye
-que las dos variables NO son independientes (están asociadas).
+Interpretación: El 90% de las mujeres mide menos de
+170.61 cm. Solo el 10% supera esa estatura.
 
 --------------------------------------------------------
-EJERCICIO 5 — F de Fisher (ANOVA)
-Contexto: Se comparan 3 dietas (grupos) en 30 pacientes
-(10 por grupo). El estadístico F calculado es 4.80.
+EJERCICIO 4 — t de Student (prueba bilateral)
+Contexto: Un laboratorio afirma que el tiempo de
+coagulación medio de un medicamento es 8.5 minutos.
+Se mide en 20 pacientes y se obtiene t_calculado = 2.45.
+Se usa α = 0.05 (prueba bilateral).
+
+Pregunta: ¿Se rechaza la hipótesis nula H₀: μ = 8.5?
 
 Parámetros en el programa:
-  Distribución: F de Fisher
-  gl₁ = 2  (grupos − 1 = 3 − 1)
-  gl₂ = 27 (N total − grupos = 30 − 3)
-  Cálculo: P(F ≥ 4.80)
+  Pestaña: t de Student
+  gl = 19  (n − 1 = 20 − 1)
+  Tipo de cola: Bilateral (dos colas)
+  t_calculado = 2.45,  α = 0.05
 
-Resultado esperado: p-valor ≈ 0.0164
+Resultados esperados:
+  Valor crítico t(19, α=0.05) = ±2.0930
+  p-valor = 2 × P(T ≥ 2.45) ≈ 0.0243
 
-Interpretación: p < 0.05, se rechaza H₀. Hay evidencia
-de que al menos una dieta produce resultados diferentes.
+Interpretación: |2.45| > 2.0930 y p < 0.05 → se
+rechaza H₀. Hay evidencia de que el tiempo de
+coagulación difiere del valor teórico de 8.5 min.
+
+--------------------------------------------------------
+EJERCICIO 5 — χ² de Independencia
+Contexto: Estudio transversal sobre tabaquismo y
+enfermedad pulmonar crónica. n = 800 participantes.
+
+Tabla observada:
+            | Enfermedad | Sin enfermedad | Total
+  Fumador   |    120     |      280       |  400
+  No fumador|     80     |      320       |  400
+  Total     |    200     |      600       |  800
+
+Pregunta: ¿Existe asociación entre fumar y la enfermedad?
+α = 0.05
+
+Parámetros en el programa:
+  Pestaña: χ² de Independencia
+  a = 120 (Fum + Enf),  b = 280 (Fum + NoEnf)
+  c =  80 (NoFum + Enf), d = 320 (NoFum + NoEnf)
+  α = 0.05
+
+Resultados esperados:
+  χ² = 10.6667
+  gl = 1
+  χ²_crítico = 3.8415
+  p-valor = 0.0011
+  RR = 1.50,  OR = 1.71
+
+Interpretación: p = 0.0011 < 0.05 → se rechaza H₀.
+Hay asociación estadística significativa entre fumar
+y la enfermedad. Los fumadores tienen 1.5 veces más
+riesgo de presentar la enfermedad que los no fumadores.
+
+--------------------------------------------------------
+EJERCICIO 6 — Prueba Exacta de Fisher (muestra pequeña)
+Contexto: Ensayo clínico con 20 pacientes distribuidos
+en dos grupos iguales (10 por grupo). Se evalúa si un
+tratamiento reduce la frecuencia de un efecto adverso.
+
+Tabla observada:
+              | Efecto adverso | Sin efecto | Total
+  Tratamiento |       8        |     2      |  10
+  Control     |       1        |     9      |  10
+  Total       |       9        |    11      |  20
+
+Nota: Hay celdas con frecuencias esperadas < 5, por
+lo que χ² no es apropiado → usar Fisher Exacto.
+
+Parámetros en el programa:
+  Pestaña: Prueba Exacta de Fisher
+  a = 8,  b = 2,  c = 1,  d = 9
+  α = 0.05
+
+Resultados esperados:
+  p-valor exacto ≈ 0.0055
+  OR = 36.0
+  Decisión: rechazar H₀
+
+Interpretación: p = 0.0055 < 0.05 → se rechaza H₀.
+Hay evidencia estadística de asociación. El grupo
+tratamiento tiene 36 veces más probabilidad de presentar
+el efecto adverso que el grupo control (OR = 36.0).
 
 ========================================================
 FIN DE LOS EJERCICIOS

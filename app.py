@@ -18,9 +18,11 @@ import matplotlib.pyplot as plt
 from calculos import (
     calcular_normal,
     calcular_t,
-    calcular_chi2,
-    calcular_f,
+    calcular_prueba_t,
+    calcular_prueba_chi2_ind,
+    calcular_prueba_fisher,
     crear_grafico,
+    crear_grafico_fisher,
 )
 
 
@@ -452,8 +454,8 @@ with ck2:
         'La probabilidad <strong>NO</strong> es la altura de la curva — '
         'es el <strong>área bajo la curva</strong>. '
         'El área total siempre suma <strong>1 (= 100%)</strong>.<br>'
-        '<span style="color:#6D5A8A;font-size:.82rem;margin-top:4px;display:block;">'
-        'P(X = valor exacto) = 0</span>'
+        '<span style="color:#F87171;font-size:.84rem;font-weight:700;margin-top:6px;display:block;">'
+        'P(X = a) = 0 &nbsp;para cualquier valor puntual a</span>'
         '</div>',
         unsafe_allow_html=True,
     )
@@ -566,6 +568,7 @@ with tab_n:
                     r, ps, it, ev = calcular_normal(media_n, sigma_n, 'percentil', perc / 100)
                     st.session_state.update(dict(r_n=r, ps_n=ps, it_n=it, ev_n=True,
                                                  ts_n="izquierda", la_n=r, lb_n=None,
+                                                 perc_frac_n=perc/100,
                                                  ultima_dist="n"))
                     st.rerun()
 
@@ -592,76 +595,76 @@ with tab_t:
 
     with L:
         with st.container(border=True):
-            paso_header(1, "Parámetros")
-            gl_t = st.number_input("Grados de libertad (gl = n − 1)",
-                                   value=10, min_value=1, max_value=500, step=1, key="gl_t")
-            if gl_t >= 30:
-                st.success(f"✅ Con {gl_t} gl ≈ Normal Estándar.")
-            elif gl_t >= 10:
-                st.info(f"ℹ️ Con {gl_t} gl, colas algo más anchas.")
-            else:
-                st.warning(f"⚠️ Con {gl_t} gl, colas bastante más anchas.")
+            paso_header(1, "Datos de la muestra")
+            c1, c2 = st.columns(2)
+            xbar_t = c1.number_input("Media muestral (x̄)", value=19.2,
+                                     step=0.1, format="%.4f", key="xbar_t")
+            mu0_t  = c2.number_input("Media hipotética (μ₀)", value=20.0,
+                                     step=0.1, format="%.4f", key="mu0_t")
+            c3, c4 = st.columns(2)
+            s_val_t = c3.number_input("Desv. estándar muestral (s)", value=1.1,
+                                      min_value=0.0001, step=0.1, format="%.4f", key="s_val_t")
+            n_val_t = int(c4.number_input("Tamaño de muestra (n)", value=10,
+                                          min_value=2, max_value=10000, step=1, key="n_val_t"))
+            st.caption(f"gl = n − 1 = {n_val_t} − 1 = **{n_val_t - 1}**")
+            alpha_val_t = st.select_slider(
+                "Nivel de significancia α", key="alpha_val_t",
+                options=[0.10, 0.05, 0.01, 0.001], value=0.05,
+                format_func=lambda x: f"α = {x}  ({x*100:.1f}%)",
+            )
 
         with st.container(border=True):
-            paso_header(2, "¿Qué quieres calcular?")
-            tipo_t = st.radio("", [
-                "📉  P(T ≤ a)",
-                "📈  P(T ≥ a)",
-                "📊  P(a ≤ T ≤ b)",
-                "🔑  Valor crítico t (dado α)",
-            ], key="tipo_t", label_visibility="collapsed")
+            paso_header(2, "Tipo de hipótesis")
+            hip_radio_t = st.radio("", [
+                "Bilateral  (H₁: μ ≠ μ₀)",
+                "Cola izquierda  (H₁: μ < μ₀)",
+                "Cola derecha  (H₁: μ > μ₀)",
+            ], key="hip_radio_t", label_visibility="collapsed")
+            _mu0_lbl = f"{mu0_t:g}"
+            if "Bilateral" in hip_radio_t:
+                _h0_lbl, _h1_lbl = f"H₀: μ = {_mu0_lbl}", f"H₁: μ ≠ {_mu0_lbl}"
+            elif "izquierda" in hip_radio_t:
+                _h0_lbl, _h1_lbl = f"H₀: μ = {_mu0_lbl}", f"H₁: μ < {_mu0_lbl}"
+            else:
+                _h0_lbl, _h1_lbl = f"H₀: μ = {_mu0_lbl}", f"H₁: μ > {_mu0_lbl}"
+            st.markdown(
+                f'<div class="ficha" style="text-align:center;">'
+                f'<b>{_h0_lbl}</b>&nbsp;&nbsp;&nbsp;&nbsp;<b>{_h1_lbl}</b></div>',
+                unsafe_allow_html=True,
+            )
 
         with st.container(border=True):
-            paso_header(3, "Valores y cálculo")
-            if "≤ a)" in tipo_t:
-                va = st.number_input("Valor de a", value=0.0, step=0.1, format="%.4f", key="tt_a")
-                if st.button("Calcular", type="primary", key="btn_ti", width='stretch'):
-                    r, ps, it, ev = calcular_t(gl_t, 'izquierda', va)
-                    st.session_state.update(dict(r_t=r, ps_t=ps, it_t=it, ev_t=ev,
-                                                 ts_t="izquierda", la_t=va, lb_t=None,
-                                                 ultima_dist="t"))
-                    st.rerun()
-            elif "≥ a)" in tipo_t:
-                va = st.number_input("Valor de a", value=0.0, step=0.1, format="%.4f", key="tt_ad")
-                if st.button("Calcular", type="primary", key="btn_td", width='stretch'):
-                    r, ps, it, ev = calcular_t(gl_t, 'derecha', va)
-                    st.session_state.update(dict(r_t=r, ps_t=ps, it_t=it, ev_t=ev,
-                                                 ts_t="derecha", la_t=va, lb_t=None,
-                                                 ultima_dist="t"))
-                    st.rerun()
-            elif "≤ T ≤" in tipo_t:
-                c1, c2 = st.columns(2)
-                va = c1.number_input("Límite a", value=-2.0, step=0.1, format="%.4f", key="tt_ae")
-                vb = c2.number_input("Límite b", value=2.0, step=0.1, format="%.4f", key="tt_be")
-                if va >= vb:
-                    st.warning("⚠️ a debe ser menor que b.")
-                if st.button("Calcular", type="primary", key="btn_te", width='stretch'):
-                    if va < vb:
-                        r, ps, it, ev = calcular_t(gl_t, 'entre', va, vb)
-                        st.session_state.update(dict(r_t=r, ps_t=ps, it_t=it, ev_t=ev,
-                                                     ts_t="entre", la_t=va, lb_t=vb,
-                                                     ultima_dist="t"))
-                        st.rerun()
-            else:
-                alpha_t = st.select_slider("Nivel de significancia α", key="at_t",
-                                           options=[0.10, 0.05, 0.01, 0.001], value=0.05,
-                                           format_func=lambda x: f"α = {x}  ({x*100:.1f}%)")
-                if st.button("Calcular valor crítico", type="primary",
-                             key="btn_tvc", width='stretch'):
-                    r, ps, it, ev = calcular_t(gl_t, 'valor_critico', alpha_t)
-                    st.session_state.update(dict(r_t=r, ps_t=ps, it_t=it, ev_t=True,
-                                                 ts_t="entre", la_t=-r, lb_t=r,
-                                                 ultima_dist="t"))
-                    st.rerun()
+            paso_header(3, "Calcular")
+            if st.button("Calcular prueba t", type="primary",
+                         key="btn_prueba_t", width='stretch'):
+                _tipo_map = {
+                    "Bilateral  (H₁: μ ≠ μ₀)":      "bilateral",
+                    "Cola izquierda  (H₁: μ < μ₀)":  "izquierda",
+                    "Cola derecha  (H₁: μ > μ₀)":    "derecha",
+                }
+                _tipo = _tipo_map[hip_radio_t]
+                _res = calcular_prueba_t(xbar_t, mu0_t, s_val_t, n_val_t, alpha_val_t, _tipo)
+                st.session_state.update(dict(
+                    r_t=_res['p_val'], ps_t=_res['pasos'],
+                    it_t=_res['interp'], ev_t=False,
+                    ts_t=_res['shade_type'], la_t=_res['la'], lb_t=_res['lb'],
+                    tc_t=_res['t_calc'], tcrit_t=_res['t_crit'],
+                    gl_t=_res['gl'], dec_t=_res['rechazar'],
+                    hip_t=_tipo, alpha_t_res=alpha_val_t,
+                    ultima_dist="t",
+                ))
+                st.rerun()
 
     with R:
         st.markdown(
             '<div class="ficha"><span class="ficha-lbl">¿Cuándo se usa?</span>'
-            'Muestras pequeñas (n &lt; 30) sin conocer σ poblacional. Muy usada en clínica. '
-            '<strong>gl</strong> = n − 1. A mayor gl → más se parece a la Normal.</div>',
+            'Contrasta si la media de una muestra difiere de un valor hipotético μ₀ '
+            'cuando σ poblacional es <strong>desconocida</strong>. '
+            'Se aplica con cualquier n cuando no se conoce la desviación estándar poblacional.</div>',
             unsafe_allow_html=True,
         )
-        fig_t = crear_grafico("t", {"gl": gl_t},
+        _gl_prev = max(1, n_val_t - 1)
+        fig_t = crear_grafico("t", {"gl": _gl_prev},
                               st.session_state.get("ts_t"),
                               st.session_state.get("la_t"),
                               st.session_state.get("lb_t"))
@@ -676,65 +679,96 @@ with tab_c:
 
     with L:
         with st.container(border=True):
-            paso_header(1, "Parámetros")
-            gl_c = st.number_input("Grados de libertad (gl)", value=5,
-                                   min_value=1, max_value=100, step=1, key="gl_c")
-            st.caption(f"χ²({gl_c}): Media = {gl_c}  |  Varianza = {2*gl_c}")
+            paso_header(1, "Tabla de frecuencias observadas")
+            cr1, cr2 = st.columns(2)
+            lbl_r1_chi2 = cr1.text_input("Etiqueta fila 1",    value="Expuestos",    key="lbl_r1_chi2")
+            lbl_r2_chi2 = cr2.text_input("Etiqueta fila 2",    value="No expuestos", key="lbl_r2_chi2")
+            cc1, cc2 = st.columns(2)
+            lbl_c1_chi2 = cc1.text_input("Etiqueta columna 1", value="Evento",       key="lbl_c1_chi2")
+            lbl_c2_chi2 = cc2.text_input("Etiqueta columna 2", value="No evento",    key="lbl_c2_chi2")
+
+            st.caption(f"**{lbl_r1_chi2}**")
+            ca1, ca2 = st.columns(2)
+            a_chi2 = int(ca1.number_input(
+                f"a  ({lbl_c1_chi2})", value=38,  min_value=0, step=1, key="a_chi2"))
+            b_chi2 = int(ca2.number_input(
+                f"b  ({lbl_c2_chi2})", value=462, min_value=0, step=1, key="b_chi2"))
+
+            st.caption(f"**{lbl_r2_chi2}**")
+            ca3, ca4 = st.columns(2)
+            c_chi2 = int(ca3.number_input(
+                f"c  ({lbl_c1_chi2})", value=22,  min_value=0, step=1, key="c_chi2"))
+            d_chi2 = int(ca4.number_input(
+                f"d  ({lbl_c2_chi2})", value=478, min_value=0, step=1, key="d_chi2"))
+
+            _N_prev = a_chi2 + b_chi2 + c_chi2 + d_chi2
+            st.caption(
+                f"n₁={a_chi2+b_chi2} | n₂={c_chi2+d_chi2} | "
+                f"{lbl_c1_chi2}={a_chi2+c_chi2} | {lbl_c2_chi2}={b_chi2+d_chi2} | **N={_N_prev}**"
+            )
+            alpha_chi2 = st.select_slider(
+                "Nivel de significancia α", key="alpha_chi2",
+                options=[0.10, 0.05, 0.01], value=0.05,
+                format_func=lambda x: f"α = {x}  ({x*100:.1f}%)",
+            )
 
         with st.container(border=True):
-            paso_header(2, "¿Qué quieres calcular?")
-            tipo_c = st.radio("", [
-                "📉  P(χ² ≤ a) — probabilidad acumulada",
-                "📈  P(χ² ≥ a) — p-valor de una prueba",
-                "🔑  Valor crítico χ² (dado α)",
-            ], key="tipo_c", label_visibility="collapsed")
+            paso_header(2, "Hipótesis")
+            st.markdown(
+                '<div class="ficha" style="text-align:center;">'
+                '<b>H₀:</b> No existe asociación entre las variables'
+                '&emsp;&emsp;'
+                '<b>H₁:</b> Existe asociación entre las variables'
+                '</div>',
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                '<div class="ficha" style="font-size:.83rem;margin-top:6px;">'
+                '<span class="ficha-lbl">Tipo:</span>'
+                'Prueba bilateral · cola derecha · gl = (2−1)(2−1) = 1'
+                '</div>',
+                unsafe_allow_html=True,
+            )
 
         with st.container(border=True):
-            paso_header(3, "Valores y cálculo")
-            if "acumulada" in tipo_c:
-                va = st.number_input("Valor de a", value=float(gl_c),
-                                     min_value=0.001, step=0.5, format="%.4f", key="cc_a")
-                if st.button("Calcular", type="primary", key="btn_ci", width='stretch'):
-                    r, ps, it, ev = calcular_chi2(gl_c, 'izquierda', va)
-                    st.session_state.update(dict(r_c=r, ps_c=ps, it_c=it, ev_c=ev,
-                                                 ts_c="izquierda", la_c=va,
-                                                 ultima_dist="c"))
-                    st.rerun()
-            elif "p-valor" in tipo_c:
-                va = st.number_input("Estadístico χ² calculado", value=float(gl_c),
-                                     min_value=0.001, step=0.5, format="%.4f", key="cc_ad")
-                if st.button("Calcular p-valor", type="primary",
-                             key="btn_cd", width='stretch'):
-                    r, ps, it, ev = calcular_chi2(gl_c, 'derecha', va)
-                    st.session_state.update(dict(r_c=r, ps_c=ps, it_c=it, ev_c=ev,
-                                                 ts_c="derecha", la_c=va,
-                                                 ultima_dist="c"))
-                    st.rerun()
-            else:
-                alpha_c = st.select_slider("Nivel de significancia α", key="at_c",
-                                           options=[0.10, 0.05, 0.01], value=0.05,
-                                           format_func=lambda x: f"α = {x}  ({x*100:.1f}%)")
-                if st.button("Calcular valor crítico", type="primary",
-                             key="btn_cvc", width='stretch'):
-                    r, ps, it, ev = calcular_chi2(gl_c, 'valor_critico', alpha_c)
-                    st.session_state.update(dict(r_c=r, ps_c=ps, it_c=it, ev_c=True,
-                                                 ts_c="derecha", la_c=r,
-                                                 ultima_dist="c"))
-                    st.rerun()
+            paso_header(3, "Calcular")
+            if st.button("Calcular prueba χ²", type="primary",
+                         key="btn_chi2ind", width='stretch'):
+                _res_ci = calcular_prueba_chi2_ind(
+                    a_chi2, b_chi2, c_chi2, d_chi2, alpha_chi2,
+                    lbl_r1_chi2, lbl_r2_chi2, lbl_c1_chi2, lbl_c2_chi2,
+                )
+                st.session_state.update(dict(
+                    r_chi2ind    = _res_ci['chi2_stat'],
+                    ps_chi2ind   = _res_ci['pasos'],
+                    it_chi2ind   = _res_ci['conclusion'],
+                    ts_chi2ind   = "derecha",
+                    la_chi2ind   = _res_ci['chi2_stat'],
+                    gl_chi2ind   = _res_ci['gl'],
+                    pv_chi2ind   = _res_ci['p_val'],
+                    crit_chi2ind = _res_ci['chi2_crit'],
+                    dec_chi2ind  = _res_ci['rechazar'],
+                    epi_chi2ind  = _res_ci['epi'],
+                    ultima_dist  = "chi2ind",
+                ))
+                st.rerun()
 
     with R:
         st.markdown(
             '<div class="ficha"><span class="ficha-lbl">¿Cuándo se usa?</span>'
-            'Para probar si dos variables categóricas están asociadas. '
-            'Ej: ¿El sexo está asociado con tener diabetes? '
-            '<strong>gl</strong> = (filas − 1) × (columnas − 1). Solo valores ≥ 0.</div>',
+            'Evalúa si dos variables categóricas están <strong>asociadas</strong> en estudios '
+            'epidemiológicos, clínicos o de salud pública (ej: exposición–enfermedad). '
+            'Incluye RR, OR, DAR y NNH/NNT automáticamente.</div>',
             unsafe_allow_html=True,
         )
-        fig_c = crear_grafico("chi2", {"gl": gl_c},
-                              st.session_state.get("ts_c"),
-                              st.session_state.get("la_c"))
-        st.pyplot(fig_c, width='stretch')
-        plt.close(fig_c)
+        _gl_ci_prev = st.session_state.get("gl_chi2ind", 1)
+        _la_ci_prev = st.session_state.get("la_chi2ind")
+        fig_chi2ind = crear_grafico(
+            "chi2", {"gl": _gl_ci_prev},
+            "derecha" if _la_ci_prev else None, _la_ci_prev,
+        )
+        st.pyplot(fig_chi2ind, width='stretch')
+        plt.close(fig_chi2ind)
 
 
 
@@ -744,60 +778,111 @@ with tab_f:
 
     with L:
         with st.container(border=True):
-            paso_header(1, "Parámetros")
-            c1, c2 = st.columns(2)
-            gl1_f = c1.number_input("gl₁  (grupos − 1)", value=3,
-                                    min_value=1, max_value=100, step=1, key="gl1_f")
-            gl2_f = c2.number_input("gl₂  (N total − grupos)", value=20,
-                                    min_value=2, max_value=500, step=1, key="gl2_f")
-            if gl2_f > 2:
-                st.caption(f"F({gl1_f},{gl2_f}): Media ≈ {gl2_f/(gl2_f-2):.3f}")
+            paso_header(1, "Datos observados")
+            fr1, fr2 = st.columns(2)
+            lbl_r1_fsh = fr1.text_input("Etiqueta fila 1",    value="Grupo 1",   key="lbl_r1_fsh")
+            lbl_r2_fsh = fr2.text_input("Etiqueta fila 2",    value="Grupo 2",   key="lbl_r2_fsh")
+            fc1, fc2 = st.columns(2)
+            lbl_c1_fsh = fc1.text_input("Etiqueta columna 1", value="Evento",    key="lbl_c1_fsh")
+            lbl_c2_fsh = fc2.text_input("Etiqueta columna 2", value="No evento", key="lbl_c2_fsh")
+
+            st.caption(f"**{lbl_r1_fsh}**")
+            fa1, fa2 = st.columns(2)
+            a_fsh = int(fa1.number_input(
+                f"a  ({lbl_c1_fsh})", value=4,  min_value=0, step=1, key="a_fsh"))
+            b_fsh = int(fa2.number_input(
+                f"b  ({lbl_c2_fsh})", value=11, min_value=0, step=1, key="b_fsh"))
+
+            st.caption(f"**{lbl_r2_fsh}**")
+            fa3, fa4 = st.columns(2)
+            c_fsh = int(fa3.number_input(
+                f"c  ({lbl_c1_fsh})", value=0,  min_value=0, step=1, key="c_fsh"))
+            d_fsh = int(fa4.number_input(
+                f"d  ({lbl_c2_fsh})", value=15, min_value=0, step=1, key="d_fsh"))
+
+            _N_fsh = a_fsh + b_fsh + c_fsh + d_fsh
+            st.caption(
+                f"n₁={a_fsh+b_fsh} | n₂={c_fsh+d_fsh} | "
+                f"{lbl_c1_fsh}={a_fsh+c_fsh} | {lbl_c2_fsh}={b_fsh+d_fsh} | **N={_N_fsh}**"
+            )
+            alpha_fsh = st.select_slider(
+                "Nivel de significancia α", key="alpha_fsh",
+                options=[0.10, 0.05, 0.01], value=0.05,
+                format_func=lambda x: f"α = {x}  ({x*100:.1f}%)",
+            )
 
         with st.container(border=True):
-            paso_header(2, "¿Qué quieres calcular?")
-            tipo_f = st.radio("", [
-                "📈  P(F ≥ a) — p-valor del estadístico F",
-                "🔑  Valor crítico F (dado α)",
-            ], key="tipo_f", label_visibility="collapsed")
+            paso_header(2, "Tipo de prueba e hipótesis")
+            tipo_fsh = st.radio("", [
+                "↔️  Bilateral (dos colas)",
+                "⬅️  Unilateral izquierda",
+                "➡️  Unilateral derecha",
+            ], key="tipo_fsh", label_visibility="collapsed")
+            st.markdown(
+                '<div class="ficha" style="text-align:center;">'
+                '<b>H₀:</b> No existe asociación entre las variables'
+                '&emsp;&emsp;'
+                '<b>H₁:</b> Existe asociación entre las variables'
+                '</div>',
+                unsafe_allow_html=True,
+            )
 
         with st.container(border=True):
-            paso_header(3, "Valores y cálculo")
-            if "p-valor" in tipo_f:
-                va = st.number_input("Estadístico F calculado", value=2.0,
-                                     min_value=0.001, step=0.1, format="%.4f", key="ff_a")
-                if st.button("Calcular p-valor", type="primary",
-                             key="btn_fd", width='stretch'):
-                    r, ps, it, ev = calcular_f(gl1_f, gl2_f, 'derecha', va)
-                    st.session_state.update(dict(r_f=r, ps_f=ps, it_f=it, ev_f=ev,
-                                                 ts_f="derecha", la_f=va,
-                                                 ultima_dist="f"))
-                    st.rerun()
-            else:
-                alpha_f = st.select_slider("Nivel de significancia α", key="at_f",
-                                           options=[0.10, 0.05, 0.01], value=0.05,
-                                           format_func=lambda x: f"α = {x}  ({x*100:.1f}%)")
-                if st.button("Calcular valor crítico F", type="primary",
-                             key="btn_fvc", width='stretch'):
-                    r, ps, it, ev = calcular_f(gl1_f, gl2_f, 'valor_critico', alpha_f)
-                    st.session_state.update(dict(r_f=r, ps_f=ps, it_f=it, ev_f=True,
-                                                 ts_f="derecha", la_f=r,
-                                                 ultima_dist="f"))
-                    st.rerun()
+            paso_header(3, "Calcular")
+            _val_ok = _N_fsh > 0
+            if not _val_ok:
+                st.warning("⚠️ El total general debe ser mayor que cero.")
+            if st.button("Calcular prueba exacta de Fisher", type="primary",
+                         key="btn_fisher", width='stretch',
+                         disabled=not _val_ok):
+                _tipo_map_fsh = {
+                    "↔️  Bilateral (dos colas)": "bilateral",
+                    "⬅️  Unilateral izquierda":  "izquierda",
+                    "➡️  Unilateral derecha":    "derecha",
+                }
+                _tipo_f = _tipo_map_fsh[tipo_fsh]
+                _res_fsh = calcular_prueba_fisher(
+                    a_fsh, b_fsh, c_fsh, d_fsh, alpha_fsh, _tipo_f,
+                    lbl_r1_fsh, lbl_r2_fsh, lbl_c1_fsh, lbl_c2_fsh,
+                )
+                st.session_state.update(dict(
+                    r_fisher    = _res_fsh['OR'],
+                    ps_fisher   = _res_fsh['pasos'],
+                    it_fisher   = _res_fsh['conclusion'],
+                    pv_fisher   = _res_fsh['p_val'],
+                    dec_fisher  = _res_fsh['rechazar'],
+                    OR_fsh      = _res_fsh['OR'],
+                    OR_str_fsh  = _res_fsh['OR_str'],
+                    OR_interp_fsh = _res_fsh['OR_interp'],
+                    any_small_fsh = _res_fsh['any_small'],
+                    epi_fisher  = _res_fsh['epi'],
+                    exp_fisher  = _res_fsh['expected'],
+                    obs_fisher  = {'a': a_fsh, 'b': b_fsh, 'c': c_fsh, 'd': d_fsh},
+                    lbls_fisher = (lbl_r1_fsh, lbl_r2_fsh, lbl_c1_fsh, lbl_c2_fsh),
+                    alpha_fisher = alpha_fsh,
+                    ultima_dist = "fisher",
+                ))
+                st.rerun()
 
     with R:
         st.markdown(
             '<div class="ficha"><span class="ficha-lbl">¿Cuándo se usa?</span>'
-            'Para comparar medias de 3 o más grupos (ANOVA). '
-            'Ej: ¿Tres dietas producen pérdidas de peso distintas? '
-            '<strong>gl₁</strong> = grupos − 1 &nbsp;·&nbsp; <strong>gl₂</strong> = N total − grupos.</div>',
+            'Cuando las frecuencias esperadas son pequeñas (&lt;5) y χ² no es adecuada. '
+            'Ideal en <strong>farmacovigilancia, estudios clínicos, epidemiología</strong> '
+            'con muestras pequeñas o eventos raros. Calcula probabilidades exactas '
+            'mediante la distribución hipergeométrica.</div>',
             unsafe_allow_html=True,
         )
-        fig_f = crear_grafico("f", {"gl1": gl1_f, "gl2": gl2_f},
-                              st.session_state.get("ts_f"),
-                              st.session_state.get("la_f"))
-        st.pyplot(fig_f, width='stretch')
-        plt.close(fig_f)
-
+        _obs_p = st.session_state.get("obs_fisher", {'a': 4, 'b': 11, 'c': 0, 'd': 15})
+        _exp_p = st.session_state.get("exp_fisher", {'E11': 2.0, 'E12': 13.0, 'E21': 2.0, 'E22': 13.0})
+        _ll_p  = st.session_state.get("lbls_fisher", ("Grupo 1", "Grupo 2", "Evento", "No evento"))
+        fig_fsh = crear_grafico_fisher(
+            _obs_p['a'], _obs_p['b'], _obs_p['c'], _obs_p['d'],
+            _exp_p['E11'], _exp_p['E12'], _exp_p['E21'], _exp_p['E22'],
+            _ll_p[0], _ll_p[1], _ll_p[2], _ll_p[3],
+        )
+        st.pyplot(fig_fsh, width='stretch')
+        plt.close(fig_fsh)
 
 
 # ================================================================
@@ -811,41 +896,48 @@ _ud = st.session_state.get("ultima_dist")
 
 if _ud == "n" and "r_n" in st.session_state:
     _ts = st.session_state.get("ts_n"); _la = st.session_state.get("la_n"); _lb = st.session_state.get("lb_n"); _r = st.session_state["r_n"]
-    if _ts == "izquierda":
+    _ev_n = st.session_state.get("ev_n", False)
+    _perc_frac = st.session_state.get("perc_frac_n", 0.95)
+    if _ts == "izquierda" and _ev_n:
+        # Percentile case: _r is an X value, not a probability — use _perc_frac for the area
+        _desc_g = (
+            f"La línea vertical en <b>X = {_la:.4f}</b> es el percentil {_perc_frac*100:.0f} "
+            f"de la distribución N(μ={media_n}, σ={sigma_n}). "
+            f"La <strong>zona azul a la izquierda</strong> representa el "
+            f"<b>{_perc_frac*100:.1f}%</b> del área total bajo la curva — "
+            f"el {_perc_frac*100:.1f}% de todos los valores posibles son menores que {_la:.4f}. "
+            f"Solo el {(1-_perc_frac)*100:.1f}% del área queda a la derecha. "
+            f"Recuerda: esta área sombreada ES la probabilidad (P(X &lt; {_la:.4f}) = {_perc_frac:.4f}), "
+            f"no la altura de la curva en ese punto."
+        )
+    elif _ts == "izquierda":
         _desc_g = (
             f"La curva en forma de campana representa la distribución Normal con "
             f"<b>μ = {media_n}</b> (centro) y <b>σ = {sigma_n}</b> (ancho). "
             f"La línea vertical en <b>a = {_la:.4f}</b> divide el área total en dos partes. "
             f"La <strong>zona azul sombreada a la izquierda</strong> acumula el <b>{_r*100:.2f}%</b> del área — "
-            f"eso significa que el {_r*100:.2f}% de las observaciones son ≤ {_la:.4f}. "
-            f"El área blanca restante ({(1-_r)*100:.2f}%) corresponde a P(X &gt; {_la:.4f})."
+            f"el área bajo la curva hasta a es P(X ≤ {_la:.4f}) = {_r:.4f}. "
+            f"La zona sin sombra (área derecha = {(1-_r)*100:.2f}%) corresponde a P(X &gt; {_la:.4f})."
         )
     elif _ts == "derecha":
         _desc_g = (
             f"La campana está centrada en <b>μ = {media_n}</b> con dispersión <b>σ = {sigma_n}</b>. "
             f"La línea vertical en <b>a = {_la:.4f}</b> separa la cola derecha. "
-            f"La <strong>zona azul sombreada a la derecha</strong> representa el <b>{_r*100:.2f}%</b> del área total — "
-            f"la probabilidad de que una observación supere {_la:.4f}. "
-            f"La parte izquierda sin sombrear ({(1-_r)*100:.2f}%) es P(X &lt; {_la:.4f}). "
-            f"Recuerda: el área total bajo toda la curva siempre es 1 (= 100%)."
+            f"La <strong>zona azul sombreada a la derecha</strong> es el <b>{_r*100:.2f}%</b> del área total — "
+            f"el área bajo la curva desde a en adelante es P(X ≥ {_la:.4f}) = {_r:.4f}. "
+            f"La zona izquierda (área = {(1-_r)*100:.2f}%) es P(X &lt; {_la:.4f}). "
+            f"Área total bajo toda la curva = 1 (= 100%)."
         )
     elif _ts == "entre":
         _desc_g = (
             f"La campana se centra en <b>μ = {media_n}</b>. Las dos líneas verticales marcan "
             f"<b>a = {_la:.4f}</b> y <b>b = {_lb:.4f}</b>. "
-            f"La <strong>zona azul entre ambas líneas</strong> acumula el <b>{_r*100:.2f}%</b> del área — "
-            f"la probabilidad de que X caiga en ese intervalo. "
-            f"Las dos colas externas (sin sombra) suman el {(1-_r)*100:.2f}% restante: "
-            f"{_r*50:.2f}% a cada lado aproximadamente."
+            f"La <strong>zona azul entre ambas líneas</strong> es el <b>{_r*100:.2f}%</b> del área total — "
+            f"el área bajo la curva entre a y b es P({_la:.4f} ≤ X ≤ {_lb:.4f}) = {_r:.4f}. "
+            f"Las dos colas externas (áreas sin sombra) acumulan el {(1-_r)*100:.2f}% restante."
         )
     else:
-        _desc_g = (
-            f"La línea vertical en <b>X = {_la:.4f}</b> es el percentil solicitado. "
-            f"La <strong>zona azul a la izquierda</strong> representa exactamente el <b>{_r*100:.2f}%</b> del área total — "
-            f"significa que el {_r*100:.2f}% de todos los valores de esta distribución "
-            f"N(μ={media_n}, σ={sigma_n}) son menores que {_la:.4f}. "
-            f"Solo el {(1-_r)*100:.2f}% de los valores superan ese punto."
-        )
+        _desc_g = f"Distribución Normal N(μ={media_n}, σ={sigma_n}). La zona sombreada representa el área = probabilidad."
     with st.container(border=True):
         rL, rR = st.columns([1, 1.4], gap="large")
         with rL:
@@ -859,45 +951,135 @@ if _ud == "n" and "r_n" in st.session_state:
                                  _ts, _la, _lb)
             st.pyplot(_fig, width='stretch')
             plt.close(_fig)
-            st.markdown(f'<div class="ficha">{_desc_g}</div>', unsafe_allow_html=True)
             mostrar_panel(_r, st.session_state["it_n"],
                           st.session_state["ps_n"], st.session_state.get("ev_n", False),
                           parte="resultado")
+            st.markdown(f'<div class="ficha">{_desc_g}</div>', unsafe_allow_html=True)
+            if _ts == "izquierda" and _ev_n:
+                _interp_n = (
+                    f"El valor <b>{_la:.4f}</b> es el percentil {_perc_frac*100:.0f} de "
+                    f"N(μ={media_n}, σ={sigma_n}). Se espera que el "
+                    f"<b>{_perc_frac*100:.1f}%</b> de las observaciones sean menores que "
+                    f"este punto, y el <b>{(1-_perc_frac)*100:.1f}%</b> lo supere."
+                )
+            elif _ts == "izquierda":
+                _interp_n = (
+                    f"Se espera que aproximadamente el <b>{_r*100:.1f}%</b> de las "
+                    f"observaciones de N(μ={media_n}, σ={sigma_n}) sean menores o iguales "
+                    f"a <b>{_la:.4f}</b>. El restante <b>{(1-_r)*100:.1f}%</b> supera ese valor."
+                )
+            elif _ts == "derecha":
+                _interp_n = (
+                    f"Se espera que aproximadamente el <b>{_r*100:.1f}%</b> de las "
+                    f"observaciones superen <b>{_la:.4f}</b>. "
+                    f"El <b>{(1-_r)*100:.1f}%</b> restante queda por debajo de ese punto."
+                )
+            elif _ts == "entre":
+                _interp_n = (
+                    f"Se espera que aproximadamente el <b>{_r*100:.1f}%</b> de las "
+                    f"observaciones de N(μ={media_n}, σ={sigma_n}) se encuentren entre "
+                    f"<b>{_la:.4f}</b> y <b>{_lb:.4f}</b>. "
+                    f"Las dos colas externas acumulan el restante <b>{(1-_r)*100:.1f}%</b>."
+                )
+            else:
+                _interp_n = f"La zona sombreada representa el <b>{_r*100:.2f}%</b> del área bajo la curva."
+            st.markdown(
+                f'<div style="background:#050F1E;border-left:4px solid #3B82F6;'
+                f'border-radius:0 8px 8px 0;padding:12px 16px;margin-top:4px;">'
+                f'<p style="color:#60A5FA;font-weight:700;font-size:.75rem;letter-spacing:.6px;'
+                f'text-transform:uppercase;margin:0 0 6px;">📊 Interpretación del área calculada</p>'
+                f'<p style="color:#94A3B8;font-size:.83rem;line-height:1.7;margin:0;">{_interp_n}</p>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
         with rR:
             mostrar_panel(_r, st.session_state["it_n"],
                           st.session_state["ps_n"], st.session_state.get("ev_n", False),
                           parte="pasos")
 
 elif _ud == "t" and "r_t" in st.session_state:
-    _ts = st.session_state.get("ts_t"); _la = st.session_state.get("la_t"); _lb = st.session_state.get("lb_t"); _r = st.session_state["r_t"]
-    if _ts == "izquierda":
+    _ts   = st.session_state.get("ts_t")
+    _la   = st.session_state.get("la_t")
+    _lb   = st.session_state.get("lb_t")
+    _r    = st.session_state["r_t"]
+    gl_t  = st.session_state.get("gl_t", 9)
+    _tc   = st.session_state.get("tc_t")
+    _tcrit = st.session_state.get("tcrit_t")
+    _dec  = st.session_state.get("dec_t", False)
+    _hip  = st.session_state.get("hip_t", "bilateral")
+    _alpha_r = st.session_state.get("alpha_t_res", 0.05)
+
+    _tc_display    = f"{_tc:.4f}"    if _tc    is not None else "—"
+    _tcrit_display = f"±{_tcrit:.4f}" if (_tcrit is not None and _hip == "bilateral") \
+                     else (f"{_tcrit:.4f}" if _tcrit is not None else "—")
+
+    if _ts == "colas" and _tc is not None:
         _desc_g = (
-            f"La curva t con <b>{gl_t} grados de libertad</b> es simétrica y acampanada, pero con "
-            f"colas más gruesas que la Normal — esto refleja la mayor incertidumbre en muestras pequeñas. "
-            f"La <strong>zona azul a la izquierda</strong> de <b>a = {_la:.4f}</b> acumula <b>P(T ≤ {_la:.4f}) = {_r:.4f}</b> ({_r*100:.2f}%). "
-            f"A mayor número de gl, la curva t se acerca más a la Normal estándar."
+            f"La curva t({gl_t}) muestra las dos <strong>regiones de rechazo sombreadas</strong> "
+            f"más allá de ±|t| = ±<b>{abs(_tc):.4f}</b>. "
+            f"El área total sombreada es el p-valor = <b>{_r:.4f}</b> ({_r*100:.2f}%). "
+            f"{'Como p &lt; α → se rechaza H₀.' if _dec else 'Como p ≥ α → no se rechaza H₀.'}"
         )
-    elif _ts == "derecha":
+    elif _ts == "izquierda" and _tc is not None:
         _desc_g = (
-            f"La <strong>zona azul a la derecha</strong> de <b>a = {_la:.4f}</b> es el <b>p-valor = {_r:.4f}</b> ({_r*100:.2f}%). "
-            f"El p-valor indica la probabilidad de obtener un estadístico tan extremo como el observado <em>si H₀ fuera verdadera</em>. "
-            f"Con {gl_t} gl: si p-valor &lt; 0.05 → evidencia significativa para rechazar H₀; "
-            f"si p-valor ≥ 0.05 → no hay suficiente evidencia para rechazarla."
+            f"La <strong>zona azul a la izquierda</strong> de t = <b>{_tc:.4f}</b> "
+            f"es el p-valor = <b>{_r:.4f}</b> ({_r*100:.2f}%). "
+            f"Con {gl_t} gl: "
+            f"{'p &lt; α → se rechaza H₀.' if _dec else 'p ≥ α → no se rechaza H₀.'}"
         )
-    elif _ts == "entre":
+    elif _ts == "derecha" and _tc is not None:
         _desc_g = (
-            f"Las dos líneas verticales en <b>{_la:.4f}</b> y <b>{_lb:.4f}</b> son los valores críticos bilaterales. "
-            f"La <strong>zona azul central</strong> ({_r*100:.2f}%) es la <em>región de no rechazo</em> de H₀. "
-            f"Las <strong>dos colas externas</strong> ({(1-_r)*100:.2f}% en total, {(1-_r)*50:.2f}% cada una) "
-            f"forman la región de rechazo bilateral con {gl_t} grados de libertad."
+            f"La <strong>zona azul a la derecha</strong> de t = <b>{_tc:.4f}</b> "
+            f"es el p-valor = <b>{_r:.4f}</b> ({_r*100:.2f}%). "
+            f"Con {gl_t} gl: "
+            f"{'p &lt; α → se rechaza H₀.' if _dec else 'p ≥ α → no se rechaza H₀.'}"
         )
     else:
-        _desc_g = (
-            f"Las líneas verticales marcan los <b>valores críticos ±{_lb:.4f}</b> con {gl_t} gl. "
-            f"Si el estadístico t calculado en tu experimento supera este umbral en valor absoluto, "
-            f"cae en la zona de rechazo (colas sombreadas). "
-            f"Regla: <b>|t calculado| &gt; {_lb:.4f}</b> → se rechaza H₀ al nivel α especificado."
-        )
+        _desc_g = f"Distribución t({gl_t}). La zona sombreada es el p-valor = <b>{_r:.4f}</b>."
+
+    _dec_color = "#10B981" if _dec else "#F59E0B"
+    _dec_text  = "✗  Rechazar H₀" if _dec else "✓  No rechazar H₀"
+
+    _cards_html = f"""
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+      <div style="background:#0D1628;border:1px solid #1E3055;border-radius:10px;
+                  padding:12px 14px;text-align:center;">
+        <div style="font-size:.7rem;color:#64748B;letter-spacing:.5px;
+                    text-transform:uppercase;">Estadístico t</div>
+        <div style="font-size:1.3rem;font-weight:700;color:#60A5FA;
+                    margin-top:4px;">{_tc_display}</div>
+      </div>
+      <div style="background:#0D1628;border:1px solid #1E3055;border-radius:10px;
+                  padding:12px 14px;text-align:center;">
+        <div style="font-size:.7rem;color:#64748B;letter-spacing:.5px;
+                    text-transform:uppercase;">Grados de libertad</div>
+        <div style="font-size:1.3rem;font-weight:700;color:#60A5FA;
+                    margin-top:4px;">{gl_t}</div>
+      </div>
+      <div style="background:#0D1628;border:1px solid #1E3055;border-radius:10px;
+                  padding:12px 14px;text-align:center;">
+        <div style="font-size:.7rem;color:#64748B;letter-spacing:.5px;
+                    text-transform:uppercase;">Valor crítico t</div>
+        <div style="font-size:1.3rem;font-weight:700;color:#60A5FA;
+                    margin-top:4px;">{_tcrit_display}</div>
+      </div>
+      <div style="background:#0D1628;border:1px solid #1E3055;border-radius:10px;
+                  padding:12px 14px;text-align:center;">
+        <div style="font-size:.7rem;color:#64748B;letter-spacing:.5px;
+                    text-transform:uppercase;">Valor p</div>
+        <div style="font-size:1.3rem;font-weight:700;color:#6EE7B7;
+                    margin-top:4px;">{_r:.4f}</div>
+      </div>
+    </div>
+    <div style="background:#0D1628;border:2px solid {_dec_color}55;border-radius:10px;
+                padding:12px 14px;text-align:center;margin-bottom:10px;">
+      <div style="font-size:.7rem;color:#64748B;letter-spacing:.5px;
+                  text-transform:uppercase;">Decisión</div>
+      <div style="font-size:1.15rem;font-weight:700;color:{_dec_color};
+                  margin-top:4px;">{_dec_text}</div>
+    </div>
+    """
+
     with st.container(border=True):
         rL, rR = st.columns([1, 1.4], gap="large")
         with rL:
@@ -911,95 +1093,304 @@ elif _ud == "t" and "r_t" in st.session_state:
             st.pyplot(_fig, width='stretch')
             plt.close(_fig)
             st.markdown(f'<div class="ficha">{_desc_g}</div>', unsafe_allow_html=True)
-            mostrar_panel(_r, st.session_state["it_t"],
-                          st.session_state["ps_t"], st.session_state.get("ev_t", False),
-                          parte="resultado")
+            if _ts == "colas" and _tc is not None:
+                _interp_t = (
+                    f"Si H₀ fuera cierta, existiría un <b>{_r*100:.2f}%</b> de probabilidad "
+                    f"de obtener |t| ≥ <b>{abs(_tc):.4f}</b> solo por azar con {gl_t} gl "
+                    f"(prueba bilateral). "
+                    f"{'Como p &lt; α, esta evidencia es suficiente para <b>rechazar H₀</b>.' if _dec else 'Como p ≥ α, no hay evidencia suficiente para rechazar H₀.'}"
+                )
+            elif _ts == "izquierda" and _tc is not None:
+                _interp_t = (
+                    f"Si H₀ fuera cierta, existiría un <b>{_r*100:.2f}%</b> de probabilidad "
+                    f"de obtener t ≤ <b>{_tc:.4f}</b> solo por azar con {gl_t} gl. "
+                    f"{'Como p &lt; α, esta evidencia es suficiente para <b>rechazar H₀</b>.' if _dec else 'Como p ≥ α, no hay evidencia suficiente para rechazar H₀.'}"
+                )
+            elif _ts == "derecha" and _tc is not None:
+                _interp_t = (
+                    f"Si H₀ fuera cierta, existiría un <b>{_r*100:.2f}%</b> de probabilidad "
+                    f"de obtener t ≥ <b>{_tc:.4f}</b> solo por azar con {gl_t} gl. "
+                    f"{'Como p &lt; α, esta evidencia es suficiente para <b>rechazar H₀</b>.' if _dec else 'Como p ≥ α, no hay evidencia suficiente para rechazar H₀.'}"
+                )
+            else:
+                _interp_t = f"La zona sombreada es el p-valor = <b>{_r:.4f}</b> con {gl_t} gl."
+            st.markdown(
+                f'<div style="background:#050F1E;border-left:4px solid #F97316;'
+                f'border-radius:0 8px 8px 0;padding:12px 16px;margin-top:4px;">'
+                f'<p style="color:#FB923C;font-weight:700;font-size:.75rem;letter-spacing:.6px;'
+                f'text-transform:uppercase;margin:0 0 6px;">📊 Interpretación del p-valor</p>'
+                f'<p style="color:#94A3B8;font-size:.83rem;line-height:1.7;margin:0;">{_interp_t}</p>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
         with rR:
+            st.markdown(_cards_html, unsafe_allow_html=True)
             mostrar_panel(_r, st.session_state["it_t"],
-                          st.session_state["ps_t"], st.session_state.get("ev_t", False),
+                          st.session_state["ps_t"], False,
                           parte="pasos")
 
-elif _ud == "c" and "r_c" in st.session_state:
-    _ts = st.session_state.get("ts_c"); _la = st.session_state.get("la_c"); _r = st.session_state["r_c"]
-    if _ts == "izquierda":
-        _desc_g = (
-            f"La distribución χ² con <b>{gl_c} grados de libertad</b> es <em>asimétrica hacia la derecha</em> "
-            f"y solo toma valores ≥ 0 — a diferencia de la Normal, no es simétrica. "
-            f"La <strong>zona azul a la izquierda</strong> de <b>χ² = {_la:.4f}</b> acumula el <b>{_r*100:.2f}%</b> del área. "
-            f"A más grados de libertad, la curva se aplana y se desplaza a la derecha, acercándose a una forma más simétrica."
-        )
-    elif _ts == "derecha":
-        _desc_g = (
-            f"La <strong>zona azul a la derecha</strong> de <b>χ² = {_la:.4f}</b> es el <b>p-valor = {_r:.4f}</b> ({_r*100:.2f}%). "
-            f"Esta cola derecha es la región donde caen los estadísticos χ² grandes — "
-            f"que ocurren cuando hay gran discrepancia entre frecuencias observadas y esperadas. "
-            f"Con {gl_c} gl: si p-valor &lt; 0.05 → existe asociación estadísticamente significativa (se rechaza H₀)."
-        )
-    else:
-        _desc_g = (
-            f"La línea vertical marca el <b>valor crítico χ² = {_la:.4f}</b> con {gl_c} gl. "
-            f"La <strong>zona sombreada a la derecha</strong> representa el nivel de significancia α. "
-            f"Si el estadístico χ² calculado de tu tabla supera este umbral, "
-            f"los datos muestran una asociación estadísticamente significativa — se rechaza H₀."
-        )
+elif _ud == "chi2ind" and "r_chi2ind" in st.session_state:
+    _chi2_s  = st.session_state["r_chi2ind"]
+    _pv_ci   = st.session_state.get("pv_chi2ind", 0.0)
+    _gl_ci   = st.session_state.get("gl_chi2ind", 1)
+    _crit_ci = st.session_state.get("crit_chi2ind", 0.0)
+    _dec_ci  = st.session_state.get("dec_chi2ind", False)
+    _epi     = st.session_state.get("epi_chi2ind", {})
+    _ps_ci   = st.session_state.get("ps_chi2ind", [])
+    _it_ci   = st.session_state.get("it_chi2ind", "")
+
+    _dec_color = "#10B981" if _dec_ci else "#F59E0B"
+    _dec_text  = "✗  Rechazar H₀" if _dec_ci else "✓  No rechazar H₀"
+
+    _RR       = _epi.get('RR');        _OR       = _epi.get('OR')
+    _DAR      = _epi.get('DAR');       _NNX      = _epi.get('NNX')
+    _NNX_type = _epi.get('NNX_type', '—')
+    _RR_i  = _epi.get('RR_interp',  ''); _OR_i  = _epi.get('OR_interp',  '')
+    _DAR_i = _epi.get('DAR_interp', ''); _NNX_i = _epi.get('NNX_interp', '')
+
+    _RR_d  = f"{_RR:.3f}"  if _RR  is not None else "—"
+    _OR_d  = f"{_OR:.3f}"  if _OR  is not None else "—"
+    _DAR_d = f"{_DAR*100:.2f}%" if _DAR is not None else "—"
+    _NNX_d = f"{int(round(_NNX))}" if _NNX is not None else "—"
+
+    _desc_g = (
+        f"La distribución χ²({_gl_ci}) es asimétrica hacia la derecha. "
+        f"La <strong>zona azul a la derecha</strong> de χ² = <b>{_chi2_s:.4f}</b> "
+        f"es el p-valor = <b>{_pv_ci:.4f}</b>. "
+        f"{'Como p &lt; α → se rechaza H₀: existe asociación.' if _dec_ci else 'Como p ≥ α → no se rechaza H₀.'}"
+    )
+
+    _cards_ci = f"""
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+      <div style="background:#0D1628;border:1px solid #1E3055;border-radius:10px;
+                  padding:12px 14px;text-align:center;">
+        <div style="font-size:.7rem;color:#64748B;letter-spacing:.5px;text-transform:uppercase;">χ² calculado</div>
+        <div style="font-size:1.3rem;font-weight:700;color:#A855F7;margin-top:4px;">{_chi2_s:.4f}</div>
+      </div>
+      <div style="background:#0D1628;border:1px solid #1E3055;border-radius:10px;
+                  padding:12px 14px;text-align:center;">
+        <div style="font-size:.7rem;color:#64748B;letter-spacing:.5px;text-transform:uppercase;">Valor p</div>
+        <div style="font-size:1.3rem;font-weight:700;color:#6EE7B7;margin-top:4px;">{_pv_ci:.4f}</div>
+      </div>
+      <div style="background:#0D1628;border:1px solid #1E3055;border-radius:10px;
+                  padding:12px 14px;text-align:center;">
+        <div style="font-size:.7rem;color:#64748B;letter-spacing:.5px;text-transform:uppercase;">Grados de libertad</div>
+        <div style="font-size:1.3rem;font-weight:700;color:#60A5FA;margin-top:4px;">{_gl_ci}</div>
+      </div>
+      <div style="background:#0D1628;border:1px solid #1E3055;border-radius:10px;
+                  padding:12px 14px;text-align:center;">
+        <div style="font-size:.7rem;color:#64748B;letter-spacing:.5px;text-transform:uppercase;">χ² crítico</div>
+        <div style="font-size:1.3rem;font-weight:700;color:#60A5FA;margin-top:4px;">{_crit_ci:.4f}</div>
+      </div>
+    </div>
+    <div style="background:#0D1628;border:2px solid {_dec_color}55;border-radius:10px;
+                padding:12px 14px;text-align:center;margin-bottom:12px;">
+      <div style="font-size:.7rem;color:#64748B;letter-spacing:.5px;text-transform:uppercase;">Decisión</div>
+      <div style="font-size:1.15rem;font-weight:700;color:{_dec_color};margin-top:4px;">{_dec_text}</div>
+    </div>
+    <p style="color:#CBD5E1;margin:6px 0 8px;font-weight:600;font-size:.85rem;
+              letter-spacing:.4px;text-transform:uppercase;">Medidas Epidemiológicas</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div style="background:#0D1628;border:1px solid #1E3055;border-radius:10px;padding:10px 12px;">
+        <div style="font-size:.68rem;color:#64748B;letter-spacing:.4px;text-transform:uppercase;">Riesgo Relativo (RR)</div>
+        <div style="font-size:1.15rem;font-weight:700;color:#60A5FA;margin:3px 0;">{_RR_d}</div>
+        <div style="font-size:.75rem;color:#94A3B8;line-height:1.4;">{_RR_i}</div>
+      </div>
+      <div style="background:#0D1628;border:1px solid #1E3055;border-radius:10px;padding:10px 12px;">
+        <div style="font-size:.68rem;color:#64748B;letter-spacing:.4px;text-transform:uppercase;">Odds Ratio (OR)</div>
+        <div style="font-size:1.15rem;font-weight:700;color:#60A5FA;margin:3px 0;">{_OR_d}</div>
+        <div style="font-size:.75rem;color:#94A3B8;line-height:1.4;">{_OR_i}</div>
+      </div>
+      <div style="background:#0D1628;border:1px solid #1E3055;border-radius:10px;padding:10px 12px;">
+        <div style="font-size:.68rem;color:#64748B;letter-spacing:.4px;text-transform:uppercase;">DAR</div>
+        <div style="font-size:1.15rem;font-weight:700;color:#60A5FA;margin:3px 0;">{_DAR_d}</div>
+        <div style="font-size:.75rem;color:#94A3B8;line-height:1.4;">{_DAR_i}</div>
+      </div>
+      <div style="background:#0D1628;border:1px solid #1E3055;border-radius:10px;padding:10px 12px;">
+        <div style="font-size:.68rem;color:#64748B;letter-spacing:.4px;text-transform:uppercase;">{_NNX_type}</div>
+        <div style="font-size:1.15rem;font-weight:700;color:#60A5FA;margin:3px 0;">{_NNX_d}</div>
+        <div style="font-size:.75rem;color:#94A3B8;line-height:1.4;">{_NNX_i}</div>
+      </div>
+    </div>
+    """
+
     with st.container(border=True):
         rL, rR = st.columns([1, 1.4], gap="large")
         with rL:
             st.markdown(
-                '<p style="color:#60A5FA;font-weight:700;font-size:.9rem;'
+                '<p style="color:#A855F7;font-weight:700;font-size:.9rem;'
                 'letter-spacing:.6px;text-transform:uppercase;margin:0 0 8px;">'
-                '📊 &nbsp;Distribución Chi-cuadrado χ²</p>',
+                '🧪 &nbsp;Prueba χ² de Independencia</p>',
                 unsafe_allow_html=True,
             )
-            _fig = crear_grafico("chi2", {"gl": gl_c}, _ts, _la)
-            st.pyplot(_fig, width='stretch')
-            plt.close(_fig)
+            _fig_ci = crear_grafico("chi2", {"gl": _gl_ci}, "derecha", _chi2_s)
+            st.pyplot(_fig_ci, width='stretch')
+            plt.close(_fig_ci)
             st.markdown(f'<div class="ficha">{_desc_g}</div>', unsafe_allow_html=True)
-            mostrar_panel(_r, st.session_state["it_c"],
-                          st.session_state["ps_c"], st.session_state.get("ev_c", False),
-                          parte="resultado")
+            _interp_ci = (
+                f"El área sombreada (p = <b>{_pv_ci:.4f}</b>) es la probabilidad de "
+                f"observar discrepancias iguales o mayores que χ² = <b>{_chi2_s:.4f}</b> "
+                f"si las variables fueran independientes ({_gl_ci} gl). "
+                + (
+                    "Como p &lt; α, esta evidencia es suficiente para "
+                    "<b>rechazar H₀</b>: existe asociación estadística entre las variables."
+                    if _dec_ci else
+                    "Como p ≥ α, no hay evidencia suficiente para rechazar la "
+                    "hipótesis de independencia entre las variables."
+                )
+            )
+            st.markdown(
+                f'<div style="background:#050F1E;border-left:4px solid #A855F7;'
+                f'border-radius:0 8px 8px 0;padding:12px 16px;margin-top:4px;">'
+                f'<p style="color:#C084FC;font-weight:700;font-size:.75rem;letter-spacing:.6px;'
+                f'text-transform:uppercase;margin:0 0 6px;">📊 Interpretación del p-valor</p>'
+                f'<p style="color:#94A3B8;font-size:.83rem;line-height:1.7;margin:0;">{_interp_ci}</p>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
         with rR:
-            mostrar_panel(_r, st.session_state["it_c"],
-                          st.session_state["ps_c"], st.session_state.get("ev_c", False),
-                          parte="pasos")
+            st.markdown(_cards_ci, unsafe_allow_html=True)
+            mostrar_panel(_chi2_s, _it_ci, _ps_ci, False, parte="pasos")
 
-elif _ud == "f" and "r_f" in st.session_state:
-    _ts = st.session_state.get("ts_f"); _la = st.session_state.get("la_f"); _r = st.session_state["r_f"]
-    if _ts == "derecha" and not st.session_state.get("ev_f", False):
-        _desc_g = (
-            f"La distribución F con <b>gl₁ = {gl1_f}</b> (numerador) y <b>gl₂ = {gl2_f}</b> (denominador) "
-            f"es asimétrica hacia la derecha y solo toma valores positivos. "
-            f"La <strong>zona azul a la derecha</strong> de <b>F = {_la:.4f}</b> es el <b>p-valor = {_r:.4f}</b> ({_r*100:.2f}%). "
-            f"Un F grande indica que la varianza entre grupos supera la varianza dentro de los grupos — "
-            f"si p-valor &lt; 0.05, las medias de los grupos son estadísticamente diferentes (se rechaza H₀ en ANOVA)."
-        )
-    else:
-        _desc_g = (
-            f"La línea vertical marca el <b>valor crítico F = {_la:.4f}</b> con gl₁ = {gl1_f} y gl₂ = {gl2_f}. "
-            f"La curva F es asimétrica y siempre positiva; su forma depende de ambos parámetros de grados de libertad. "
-            f"Estadísticos F calculados que superen este umbral caen en la <strong>región de rechazo</strong> (cola derecha), "
-            f"indicando que las varianzas o medias de los grupos difieren significativamente."
-        )
+elif _ud == "fisher" and "r_fisher" in st.session_state:
+    _pv_fsh   = st.session_state.get("pv_fisher", 1.0)
+    _dec_fsh  = st.session_state.get("dec_fisher", False)
+    _OR_v     = st.session_state.get("OR_fsh")
+    _OR_s     = st.session_state.get("OR_str_fsh", "—")
+    _OR_i     = st.session_state.get("OR_interp_fsh", "")
+    _any_sm   = st.session_state.get("any_small_fsh", False)
+    _epi_fsh  = st.session_state.get("epi_fisher", {})
+    _ps_fsh   = st.session_state.get("ps_fisher", [])
+    _it_fsh   = st.session_state.get("it_fisher", "")
+    _obs_fsh  = st.session_state.get("obs_fisher", {'a': 4, 'b': 11, 'c': 0, 'd': 15})
+    _exp_fsh  = st.session_state.get("exp_fisher", {'E11': 2.0, 'E12': 13.0, 'E21': 2.0, 'E22': 13.0})
+    _ll_fsh   = st.session_state.get("lbls_fisher", ("Grupo 1", "Grupo 2", "Evento", "No evento"))
+    _a_fsh    = st.session_state.get("alpha_fisher", 0.05)
+
+    _dec_color = "#10B981" if _dec_fsh else "#F59E0B"
+    _dec_text  = "✗  Rechazar H₀" if _dec_fsh else "✓  No rechazar H₀"
+
+    _RR_fsh   = _epi_fsh.get('RR_str', '—')
+    _DAR_fsh  = _epi_fsh.get('DAR')
+    _NNX_fsh  = _epi_fsh.get('NNX')
+    _NNX_type_fsh = _epi_fsh.get('NNX_type', '—')
+    _RR_i_fsh  = _epi_fsh.get('RR_interp',  '')
+    _DAR_i_fsh = _epi_fsh.get('DAR_interp', '')
+    _NNX_i_fsh = _epi_fsh.get('NNX_interp', '')
+    _DAR_d_fsh = f"{_DAR_fsh*100:.2f}%" if _DAR_fsh is not None else "—"
+    _NNX_d_fsh = f"{int(round(_NNX_fsh))}" if _NNX_fsh is not None else "—"
+
+    _desc_g_fsh = (
+        "Barras <strong style='color:#EF4444;'>rojas</strong> = frecuencias observadas · "
+        "Barras grises = frecuencias esperadas bajo H₀. "
+        + ("Las celdas marcadas ⚠ tienen frecuencia esperada &lt; 5 → <b>Fisher es apropiado</b>. "
+           if _any_sm else "Todas las frecuencias esperadas ≥ 5. ") +
+        f"p-valor = <b>{_pv_fsh:.4f}</b> {'→ se rechaza H₀.' if _dec_fsh else '→ no se rechaza H₀.'}"
+    )
+
+    _sm_badge = ('<span style="color:#6EE7B7;font-size:.75rem;">'
+                 '✓ Fisher recomendado (E &lt; 5)</span>'
+                 if _any_sm else
+                 '<span style="color:#94A3B8;font-size:.75rem;">'
+                 'También válida: χ²</span>')
+
+    _cards_fsh = f"""
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+      <div style="background:#0D1628;border:1px solid #1E3055;border-radius:10px;
+                  padding:12px 14px;text-align:center;">
+        <div style="font-size:.7rem;color:#64748B;letter-spacing:.5px;text-transform:uppercase;">Odds Ratio</div>
+        <div style="font-size:1.3rem;font-weight:700;color:#EF4444;margin-top:4px;">{_OR_s}</div>
+      </div>
+      <div style="background:#0D1628;border:1px solid #1E3055;border-radius:10px;
+                  padding:12px 14px;text-align:center;">
+        <div style="font-size:.7rem;color:#64748B;letter-spacing:.5px;text-transform:uppercase;">Valor p</div>
+        <div style="font-size:1.3rem;font-weight:700;color:#6EE7B7;margin-top:4px;">{_pv_fsh:.4f}</div>
+      </div>
+      <div style="background:#0D1628;border:1px solid #1E3055;border-radius:10px;
+                  padding:12px 14px;text-align:center;">
+        <div style="font-size:.7rem;color:#64748B;letter-spacing:.5px;text-transform:uppercase;">α</div>
+        <div style="font-size:1.3rem;font-weight:700;color:#60A5FA;margin-top:4px;">{_a_fsh}</div>
+      </div>
+      <div style="background:#0D1628;border:1px solid #1E3055;border-radius:10px;
+                  padding:12px 14px;text-align:center;">
+        <div style="font-size:.7rem;color:#64748B;letter-spacing:.5px;text-transform:uppercase;">Frec. esperadas</div>
+        <div style="font-size:.85rem;font-weight:600;margin-top:4px;">{_sm_badge}</div>
+      </div>
+    </div>
+    <div style="background:#0D1628;border:1px solid #EF444440;border-radius:10px;
+                padding:10px 14px;margin-bottom:10px;">
+      <div style="font-size:.7rem;color:#64748B;letter-spacing:.5px;text-transform:uppercase;">OR: interpretación</div>
+      <div style="font-size:.88rem;color:#CBD5E1;margin-top:4px;line-height:1.5;">{_OR_i}</div>
+    </div>
+    <div style="background:#0D1628;border:2px solid {_dec_color}55;border-radius:10px;
+                padding:12px 14px;text-align:center;margin-bottom:12px;">
+      <div style="font-size:.7rem;color:#64748B;letter-spacing:.5px;text-transform:uppercase;">Decisión</div>
+      <div style="font-size:1.15rem;font-weight:700;color:{_dec_color};margin-top:4px;">{_dec_text}</div>
+    </div>
+    <p style="color:#CBD5E1;margin:6px 0 8px;font-weight:600;font-size:.85rem;
+              letter-spacing:.4px;text-transform:uppercase;">Medidas Epidemiológicas</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div style="background:#0D1628;border:1px solid #1E3055;border-radius:10px;padding:10px 12px;">
+        <div style="font-size:.68rem;color:#64748B;letter-spacing:.4px;text-transform:uppercase;">Riesgo Relativo (RR)</div>
+        <div style="font-size:1.15rem;font-weight:700;color:#EF4444;margin:3px 0;">{_RR_fsh}</div>
+        <div style="font-size:.75rem;color:#94A3B8;line-height:1.4;">{_RR_i_fsh}</div>
+      </div>
+      <div style="background:#0D1628;border:1px solid #1E3055;border-radius:10px;padding:10px 12px;">
+        <div style="font-size:.68rem;color:#64748B;letter-spacing:.4px;text-transform:uppercase;">DAR</div>
+        <div style="font-size:1.15rem;font-weight:700;color:#EF4444;margin:3px 0;">{_DAR_d_fsh}</div>
+        <div style="font-size:.75rem;color:#94A3B8;line-height:1.4;">{_DAR_i_fsh}</div>
+      </div>
+      <div style="background:#0D1628;border:1px solid #1E3055;border-radius:10px;padding:10px 12px;grid-column:span 2;">
+        <div style="font-size:.68rem;color:#64748B;letter-spacing:.4px;text-transform:uppercase;">{_NNX_type_fsh}</div>
+        <div style="font-size:1.15rem;font-weight:700;color:#EF4444;margin:3px 0;">{_NNX_d_fsh}</div>
+        <div style="font-size:.75rem;color:#94A3B8;line-height:1.4;">{_NNX_i_fsh}</div>
+      </div>
+    </div>
+    """
+
     with st.container(border=True):
         rL, rR = st.columns([1, 1.4], gap="large")
         with rL:
             st.markdown(
-                '<p style="color:#60A5FA;font-weight:700;font-size:.9rem;'
+                '<p style="color:#EF4444;font-weight:700;font-size:.9rem;'
                 'letter-spacing:.6px;text-transform:uppercase;margin:0 0 8px;">'
-                '📋 &nbsp;Distribución F de Fisher</p>',
+                '🔬 &nbsp;Prueba Exacta de Fisher</p>',
                 unsafe_allow_html=True,
             )
-            _fig = crear_grafico("f", {"gl1": gl1_f, "gl2": gl2_f}, _ts, _la)
-            st.pyplot(_fig, width='stretch')
-            plt.close(_fig)
-            st.markdown(f'<div class="ficha">{_desc_g}</div>', unsafe_allow_html=True)
-            mostrar_panel(_r, st.session_state["it_f"],
-                          st.session_state["ps_f"], st.session_state.get("ev_f", False),
-                          parte="resultado")
+            _fig_fsh = crear_grafico_fisher(
+                _obs_fsh['a'], _obs_fsh['b'], _obs_fsh['c'], _obs_fsh['d'],
+                _exp_fsh['E11'], _exp_fsh['E12'], _exp_fsh['E21'], _exp_fsh['E22'],
+                _ll_fsh[0], _ll_fsh[1], _ll_fsh[2], _ll_fsh[3],
+            )
+            st.pyplot(_fig_fsh, width='stretch')
+            plt.close(_fig_fsh)
+            st.markdown(f'<div class="ficha">{_desc_g_fsh}</div>', unsafe_allow_html=True)
+            _N_fsh_r = (_obs_fsh.get('a', 0) + _obs_fsh.get('b', 0)
+                        + _obs_fsh.get('c', 0) + _obs_fsh.get('d', 0))
+            _interp_fsh_r = (
+                f"El p-valor exacto <b>{_pv_fsh:.4f}</b> es la probabilidad de obtener "
+                f"esta tabla 2×2 (u otra más extrema en la misma dirección) con los "
+                f"mismos totales marginales, asumiendo que H₀ es cierta (N = {_N_fsh_r}). "
+                + (
+                    "Como p &lt; α, existe evidencia estadística para "
+                    "<b>rechazar H₀</b>: hay asociación significativa entre las variables."
+                    if _dec_fsh else
+                    "Como p ≥ α, no hay evidencia estadística suficiente para afirmar "
+                    "que existe asociación entre las variables."
+                )
+            )
+            st.markdown(
+                f'<div style="background:#050F1E;border-left:4px solid #EF4444;'
+                f'border-radius:0 8px 8px 0;padding:12px 16px;margin-top:4px;">'
+                f'<p style="color:#F87171;font-weight:700;font-size:.75rem;letter-spacing:.6px;'
+                f'text-transform:uppercase;margin:0 0 6px;">📊 Interpretación del p-valor exacto</p>'
+                f'<p style="color:#94A3B8;font-size:.83rem;line-height:1.7;margin:0;">{_interp_fsh_r}</p>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
         with rR:
-            mostrar_panel(_r, st.session_state["it_f"],
-                          st.session_state["ps_f"], st.session_state.get("ev_f", False),
-                          parte="pasos")
+            st.markdown(_cards_fsh, unsafe_allow_html=True)
+            mostrar_panel(_pv_fsh, _it_fsh, _ps_fsh, False, parte="pasos")
 
 
 # ================================================================
@@ -1008,8 +1399,8 @@ elif _ud == "f" and "r_f" in st.session_state:
 
 st.divider()
 st.markdown("""
-<div style="text-align:center;color:#334155;font-size:.79rem;padding:4px 0 10px;">
+<div style="text-align:center;color:#64748B;font-size:.79rem;padding:4px 0 10px;">
   Proyecto de Software Pedagógico · Bioestadística · Alejandra Acosta<br>
-  <em>El área bajo la curva = probabilidad. La altura de la curva ≠ probabilidad.</em>
+  <em style="color:#94A3B8;">El área bajo la curva = probabilidad &nbsp;·&nbsp; La altura de la curva = densidad f(x) ≠ probabilidad &nbsp;·&nbsp; P(X = a) = 0</em>
 </div>
 """, unsafe_allow_html=True)
